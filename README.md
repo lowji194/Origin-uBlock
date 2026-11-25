@@ -4,6 +4,10 @@
 
 [Download / Tải bản build](https://github.com/lowji194/Origin-uBlock/releases) · [Build CI](https://github.com/lowji194/Origin-uBlock/actions) · [Issues](https://github.com/lowji194/Origin-uBlock/issues)
 
+## v2.0.1 — Country flags
+- Hiển thị quốc kỳ từ tiêu đề bộ lọc, hỗ trợ cả danh sách nhập thủ công và danh sách tích hợp.
+- Nhận diện URL Vietnam Filter nếu tên đã lưu không có emoji.
+
 ## v2.0.0 — Full UI Rewrite
 Popup và dashboard được viết mới bằng Vue 3, TypeScript, Tailwind CSS và Lucide SVG. Không sử dụng HTML/CSS giao diện popup/dashboard uBlock Lite trong hai entry point phát hành. Engine MV3, element picker, compiler, bảo mật và bộ lọc vẫn kế thừa upstream.
 - Bật/tắt bảo vệ theo website và toàn cục; ba mức bảo vệ.

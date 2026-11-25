@@ -36,7 +36,7 @@ try{
   };
   await wait(1800);
   const info=await evaluate("({title:document.title,name:chrome.runtime.getManifest().name,version:chrome.runtime.getManifest().version,mv:chrome.runtime.getManifest().manifest_version,loading:!document.querySelector('[data-page=overview]'),nav:!!document.querySelector('.side-nav'),css:getComputedStyle(document.querySelector('.side-nav')).display})");
-  console.log('Dashboard',info);assert.equal(info.mv,3);assert.equal(info.version,'2.0.0');assert.equal(info.loading,false);assert.equal(info.nav,true);
+  console.log('Dashboard',info);assert.equal(info.mv,3);assert.equal(info.version,'2.0.1');assert.equal(info.loading,false);assert.equal(info.nav,true);
   const command=async(what,extra={})=>evaluate('chrome.runtime.sendMessage('+JSON.stringify({what,...extra})+')');
   const home=await evaluate("({shown:!!document.querySelector('[data-page=overview]'),nav:document.querySelectorAll('.side-nav button').length,cards:document.querySelectorAll('.stat-card').length,old:!!document.querySelector('#dashboard-nav')})");
   console.log('Independent Vue dashboard',home);assert(home.shown);assert.equal(home.nav,8);assert.equal(home.cards,3);assert.equal(home.old,false);
@@ -62,6 +62,21 @@ try{
     await wait(150);
     assert.equal(await evaluate("Boolean(document.querySelector('[data-page="+pane+"]'))"),true);
   }
+  await evaluate("document.querySelectorAll('.side-nav button')[1].click()");
+  await wait(300);
+  const vnFlag=await evaluate("Array.from(document.querySelectorAll('.list-row')).filter(r=>r.textContent.includes('ABPVN List')).some(r=>{const img=r.querySelector('img.filter-country-flag');return img&&img.complete&&img.naturalWidth>0&&img.src.endsWith('/vn.png')})");
+  assert.equal(vnFlag,true);console.log('Vietnam regional flag: passed');
+  if(process.env.ORIGIN_TEST_VIETNAM_IMPORT==='1'){
+    const url='https://raw.githubusercontent.com/lowji194/AdsBlock-Filter/main/filters/Vietnam_Filter_Desktop.txt';
+    await command('importFilterList',{url});
+    await wait(2000);
+    assert((await command('getEnabledRulesets')).includes(url));
+    await cdp('Page.reload',{},sessionId);await wait(1800);
+    await evaluate("document.querySelectorAll('.side-nav button')[1].click()");await wait(350);
+    const importedFlag=await evaluate("Array.from(document.querySelectorAll('.list-row')).filter(r=>r.textContent.includes('Lowji194')).some(r=>{const img=r.querySelector('img.filter-country-flag');return img&&img.complete&&img.naturalWidth>0&&img.src.endsWith('/vn.png')})");
+    assert.equal(importedFlag,true);console.log('Imported Vietnam Filter flag: passed');
+  }
+
   await evaluate("document.querySelectorAll('.side-nav button')[0].click()");
   await evaluate("document.querySelector('.page-header button').click()");
   await wait(500);

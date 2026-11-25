@@ -3,7 +3,7 @@ with zipfile.ZipFile(sys.argv[1]) as z:
     assert z.testzip() is None
     names=set(z.namelist()); m=json.loads(z.read('manifest.json'))
     assert m['manifest_version']==3
-    assert m['version']=='2.0.0'
+    assert m['version']=='2.0.1'
     assert m['action']['default_popup'] in names
     assert m['options_page'] in names
     assert m['background']['service_worker'].lstrip('/') in names
