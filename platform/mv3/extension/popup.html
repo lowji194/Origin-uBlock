@@ -17,13 +17,19 @@
 <body class="loading busy">
 
 <main>
-    <header class="origin-brand"><img src="img/ublock.svg" alt=""><div><strong>Origin uBlock</strong><small data-i18n="originTagline"></small></div><span class="origin-version">1.0</span></header>
-    <div id="hostname"><span></span>&shy;<span></span></div>
+    <header class="origin-brand"><img src="img/ublock.svg" alt=""><div><strong>Origin uBlock</strong><small data-i18n="originTagline"></small></div><button type="button" class="origin-settings-link" data-origin-pane="settings" aria-label="Settings"><svg viewBox="0 0 24 24"><path d="M10 3h4l.7 2.5 2 .9 2.3-1.3 2 3.4-1.9 1.8v2.4l1.9 1.8-2 3.4-2.3-1.3-2 .9L14 21h-4l-.7-2.5-2-.9L5 18.9l-2-3.4 1.9-1.8v-2.4L3 9.5l2-3.4 2.3 1.3 2-.9L10 3Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="3.1" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button></header>
+
     <div class="origin-protection needData">
         <button type="button" id="originPower" data-i18n-title="originPower" aria-pressed="false"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 7v18M14 13a16 16 0 1 0 20 0" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg></button>
         <strong id="originStatus" aria-live="polite"></strong>
-        <div class="origin-count" hidden><strong id="originCount"></strong><span data-i18n="originCount"></span></div>
+        <div id="hostname"><span></span>&shy;<span></span></div>
     </div>
+    <div class="origin-metrics needData">
+      <div><span class="metric-symbol"><svg viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z M8 12l3 3 5-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><strong id="originCount">—</strong><span data-i18n="originCount"></span></div>
+      <div><span class="metric-symbol"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 3v4m8 3v4m-5 3v4" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span><strong id="originListCount">—</strong><span data-i18n="originEnabledLists"></span></div>
+    </div>
+    <div class="origin-mode-label needData" data-i18n="originMode"></div>
+    <div class="origin-modes needData" role="group"><button type="button" data-origin-level="1" data-i18n="filteringMode1Name"></button><button type="button" data-origin-level="2" data-i18n="filteringMode2Name"></button><button type="button" data-origin-level="3" data-i18n="filteringMode3Name"></button></div>
     <!-- -------- -->
     <div class="filteringModeSlider needData">
         <div class="filteringModeButton"><div></div></div>
@@ -35,7 +41,13 @@
     <!-- -------- -->
     <div id="filteringModeText" class="needData"><label data-i18n="popupFilteringModeLabel">_</label><br><span>_</span><span></span></div>
     <!-- -------- -->
-    <div class="toolMenu localTools needHTTP">
+    <div class="origin-shortcuts globalTools">
+      <button type="button" id="originPicker"><span class="fa-icon">eye-slash</span><span data-i18n="originHide"></span></button>
+      <button type="button" data-origin-pane="rulesets"><span class="fa-icon">list-alt</span><span data-i18n="originFilters"></span></button>
+      <button type="button" data-origin-pane="overview"><svg viewBox="0 0 24 24"><path d="M4 19V5m0 14h16M8 15v-4m5 4V7m5 8v-6" stroke="currentColor" fill="none" stroke-width="1.8" stroke-linecap="round"/></svg><span data-i18n="originOverview"></span></button>
+      <button type="button" data-origin-pane="activity"><span class="fa-icon">list-alt</span><span data-i18n="originActivity"></span></button>
+    </div>
+    <details class="origin-more needHTTP"><summary data-i18n="popupMoreButton"></summary>    <div class="toolMenu localTools needHTTP">
         <label data-i18n="popupLocalToolsLabel"></label>
         <span id="gotoZapper" class="tool enabled" tabindex="0">
             <span class="fa-icon">bolt</span>
@@ -55,6 +67,7 @@
         </span>
     </div>
     <!-- -------- -->
+    </details>
     <div class="toolRibbon globalTools">
         <span id="gotoMatchedRules" class="fa-icon tool" tabindex="0" title="Show matched rules">list-alt<span class="caption">Show matched rules</span></span>
         <span id="gotoDashboard" class="fa-icon tool enabled" tabindex="0" data-i18n-title="popupTipDashboard">cogs<span class="caption" data-i18n="popupTipDashboard"></span></span>

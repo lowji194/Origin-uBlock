@@ -42,6 +42,35 @@ function renderAdminRules() {
 
 const BLOCKING_MODE_MAX = 3;
 let lastActiveMode = 2;
+let recentMatches;
+for (const button of document.querySelectorAll('[data-origin-level]')) {
+    button.addEventListener('click', () => {
+        if (dom.body.dataset.forbid?.includes('filteringMode')) return;
+        const slider = qs$('.filteringModeSlider');
+        slider.dataset.levelBefore = slider.dataset.level;
+        setFilteringMode(Number(button.dataset.originLevel), true);
+    });
+}
+for (const button of document.querySelectorAll('[data-origin-pane]')) {
+    button.addEventListener('click', async () => {
+        if (dom.body.dataset.forbid?.includes('dashboard')) return;
+        const pane = button.dataset.originPane;
+        if (pane === 'activity' && Number.isInteger(currentTab.id)) {
+            try {
+                const matches = recentMatches || await browser.declarativeNetRequest.getMatchedRules({tabId:currentTab.id});
+                await browser.storage.session.set({'origin.activity': {at:Date.now(), hostname:tabURL.hostname, matches:matches.rulesMatchedInfo || []}});
+            } catch {
+                await browser.storage.session.set({'origin.activity': {at:Date.now(),hostname:tabURL.hostname,unavailable:true}});
+            }
+        }
+        await browser.tabs.create({url:runtime.getURL('dashboard.html?pane='+pane)});
+        self.close();
+    });
+}
+document.querySelector('#originPicker').addEventListener('click', () => {
+    if (dom.body.dataset.forbid?.includes('picker') || !dom.root.classList.contains('isHTTP') || dom.body.dataset.originActive !== 'true') return;
+    document.querySelector('#gotoPicker').click();
+});
 dom.on('#originPower', 'click', () => {
     const slider = qs$('.filteringModeSlider');
     const level = Number(slider.dataset.level);
@@ -60,6 +89,7 @@ async function setFilteringMode(level, commit = false) {
     dom.body.dataset.originActive = String(on);
     dom.text('#originStatus', i18n$(on ? 'originOn' : 'originOff'));
     if (on) { lastActiveMode = level; }
+    for (const button of document.querySelectorAll('[data-origin-level]')) button.setAttribute('aria-pressed',String(Number(button.dataset.originLevel)===level));
     if ( qs$('.filteringModeSlider.moving') === null ) {
         dom.text(
             '#filteringModeText > span:nth-of-type(1)',
@@ -68,8 +98,7 @@ async function setFilteringMode(level, commit = false) {
     }
     if ( commit !== true ) { return; }
     dom.cl.add(dom.body, 'busy');
-    await commitFilteringMode();
-    dom.cl.remove(dom.body, 'busy');
+    try { await commitFilteringMode(); } finally { dom.cl.remove(dom.body, 'busy'); }
 }
 
 async function commitFilteringMode() {
@@ -110,8 +139,10 @@ async function commitFilteringMode() {
         hostname: targetHostname,
         level: afterLevel,
     });
-    if ( actualLevel !== afterLevel ) {
-        setFilteringMode(actualLevel);
+    if ( !Number.isInteger(actualLevel) ) { setFilteringMode(beforeLevel); return; }
+    if ( actualLevel !== afterLevel ) { setFilteringMode(actualLevel); }
+    if (actualLevel === 0 && beforeLevel > 0) {
+        await browser.storage.session.set({'origin.lastSiteMode': {hostname:targetHostname,level:beforeLevel}});
     }
     if ( actualLevel !== beforeLevel && popupPanelData.autoReload ) {
         const justReload = tabURL.href === currentTab.url;
@@ -342,14 +373,27 @@ async function init() {
 
     renderAdminRules();
 
+    if (popupPanelData.level === 0) {
+        const prior=(await browser.storage.session.get('origin.lastSiteMode'))['origin.lastSiteMode'];
+        const fallback=await sendMessage({what:'getDefaultFilteringMode'});
+        lastActiveMode=prior?.hostname===tabURL.hostname ? prior.level : (fallback>0?fallback:2);
+    }
     setFilteringMode(popupPanelData.level);
     try {
         const count = await browser.action.getBadgeText({ tabId: currentTab.id });
         if (/^\d+$/.test(count)) {
             dom.text('#originCount', count);
-            qs$('.origin-count').hidden = false;
+            await sendMessage({what:'originObserve', count:Number(count), tabId:currentTab.id});
         }
     } catch { /* Badge count is not exposed in all browsers. */ }
+    if (document.querySelector('#originCount').textContent === '—') {
+        try {
+            recentMatches=await browser.declarativeNetRequest.getMatchedRules({tabId:currentTab.id});
+            dom.text('#originCount',String(recentMatches.rulesMatchedInfo?.length || 0));
+        } catch {}
+    }
+    const lists=await sendMessage({what:'getEnabledRulesets'});
+    if(Array.isArray(lists)) dom.text('#originListCount',String(lists.length));
 
     dom.text('#hostname', punycode.toUnicode(tabURL.hostname));
 
@@ -374,6 +418,7 @@ async function tryInit() {
         if ( status === false ) {
             dom.cl.add(dom.body, 'nodata');
             dom.text('#hostname', i18n$('popupNoWebsite'));
+            dom.text('#originStatus', i18n$('originUnavailable'));
         }
     } catch {
     } finally {

@@ -479,7 +479,7 @@
     "message": "Toggle site protection"
   },
   "originCount": {
-    "message": "Blocked requests on this tab"
+    "message": "Filtered actions on tab"
   },
   "originSettings": {
     "message": "Protection center"
@@ -489,5 +489,116 @@
   },
   "originFork": {
     "message": "Independent fork, not affiliated with uBlock Origin."
+  },
+  "originOverview": {
+    "message": "Overview"
+  },
+  "originPrivacy": {
+    "message": "Privacy protection"
+  },
+  "originExceptions": {
+    "message": "Allowlist"
+  },
+  "originActivity": {
+    "message": "Filtering log"
+  },
+  "originFilters": {
+    "message": "Ad filters"
+  },
+  "originHide": {
+    "message": "Hide element"
+  },
+  "originMode": {
+    "message": "Protection level"
+  },
+  "originEnabledLists": {
+    "message": "Active filter lists"
+  },
+  "originRefresh": {
+    "message": "Refresh"
+  },
+  "originGlobalInfo": {
+    "message": "Default protection for websites without exceptions."
+  },
+  "originObserved": {
+    "message": "Observed filter actions today"
+  },
+  "originSampleHint": {
+    "message": "Observed browser badge counts, not a complete total."
+  },
+  "originExceptionsHint": {
+    "message": "Websites excluded from filtering."
+  },
+  "originChart": {
+    "message": "Observed activity · 7 days"
+  },
+  "originStatsOpt": {
+    "message": "Keep local statistics"
+  },
+  "originClear": {
+    "message": "Clear statistics"
+  },
+  "originQuick": {
+    "message": "Quick actions"
+  },
+  "originPrivacyHint": {
+    "message": "Control tracking, cookies, social widgets and other privacy lists."
+  },
+  "originActivityHint": {
+    "message": "Recent matched rules for the tab selected from the popup. Chrome may limit access; URLs are not collected."
+  },
+  "originFiltersHint": {
+    "message": "Choose and manage the lists used by the filtering engine."
+  },
+  "originUpdate": {
+    "message": "Refresh custom lists"
+  },
+  "originEmpty": {
+    "message": "No data yet"
+  },
+  "originRemove": {
+    "message": "Remove"
+  },
+  "originSaveError": {
+    "message": "Could not apply the change."
+  },
+  "originSaved": {
+    "message": "Saved"
+  },
+  "originUpdating": {
+    "message": "Updating…"
+  },
+  "originUpdated": {
+    "message": "Custom-list update finished. Built-in lists update with releases."
+  },
+  "originInvalid": {
+    "message": "Enter a valid hostname."
+  },
+  "originPausedHint": {
+    "message": "Resume global protection before changing exceptions."
+  },
+  "originActivityUnavailable": {
+    "message": "Chrome did not grant access to matched rules. Open the log from the site popup."
+  },
+  "originNoStats": {
+    "message": "Statistics are off. Enable to retain anonymous local samples."
+  },
+  "originRules": {
+    "message": "Network rules"
+  },
+  "originGlobalOn": {
+    "message": "Protection is active"
+  },
+  "originGlobalOff": {
+    "message": "Protection is paused"
+  },
+  "originTime": {
+    "message": "Time"
+  },
+  "originRuleId": {
+    "message": "Rule ID"
+  },
+  "originRuleset": {
+    "message": "Ruleset"
   }
 }

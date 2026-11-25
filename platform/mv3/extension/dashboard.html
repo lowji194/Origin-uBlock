@@ -20,15 +20,19 @@
 <link rel="stylesheet" href="css/origin-dashboard.css">
 </head>
 
-<body data-pane="settings" class="loading">
+<body data-pane="overview" class="loading">
 
 <!-- -------- -->
 <header>
     <nav id="dashboard-nav">
         <span class="logo origin-nav-brand"><img src="img/ublock.svg" alt=""><span><strong>Origin uBlock</strong><small data-i18n="originTagline"></small></span></span><!--
-     --><button class="tabButton" type="button" data-pane="settings" data-i18n="settingsPageName" tabindex="0"></button><!--
+     --><button class="tabButton" type="button" data-pane="overview" data-i18n="originOverview"></button><!--
      --><button class="tabButton" type="button" data-pane="rulesets" data-i18n="aboutFilterLists" tabindex="0"></button><!--
-     --><button class="tabButton" type="button" data-pane="filters" data-i18n="customFiltersPageName"tabindex="0"></button><!--
+     --><button class="tabButton" type="button" data-pane="privacy" data-i18n="originPrivacy"></button>
+        <button class="tabButton" type="button" data-pane="exceptions" data-i18n="originExceptions"></button>
+        <button class="tabButton" type="button" data-pane="filters" data-i18n="customFiltersPageName" tabindex="0"></button>
+        <button class="tabButton" type="button" data-pane="activity" data-i18n="originActivity"></button>
+        <button class="tabButton" type="button" data-pane="settings" data-i18n="settingsPageName"></button><!--
      --><button class="tabButton" type="button" data-pane="develop" data-i18n="developPageName"tabindex="0"></button><!--
      --><button class="tabButton" type="button" data-pane="about" data-i18n="aboutPageName" tabindex="0"></button>
     </nav>
@@ -41,6 +45,20 @@
 </header>
 
 <!-- -------- -->
+<section data-pane="overview">
+  <div class="origin-page-head"><div><h1 data-i18n="originOverview"></h1><p data-i18n="originIntro"></p></div><button type="button" data-origin-refresh data-i18n="originRefresh"></button></div>
+  <div class="origin-banner"><img src="img/ublock.svg" alt=""><div><h2 id="originGlobalStatus">—</h2><p data-i18n="originGlobalInfo"></p></div><button type="button" id="originGlobal" role="switch" aria-checked="false" aria-label="Protection"><span></span></button></div>
+  <div class="origin-stat-grid">
+    <article><span data-i18n="originObserved"></span><strong id="originToday">—</strong><small data-i18n="originSampleHint"></small></article>
+    <article><span data-i18n="originEnabledLists"></span><strong id="originEnabled">—</strong><small id="originRuleTotal">—</small></article>
+    <article><span data-i18n="originExceptions"></span><strong id="originExceptionCount">—</strong><small data-i18n="originExceptionsHint"></small></article>
+  </div>
+  <article class="origin-panel"><div class="origin-panel-head"><div><h2 data-i18n="originChart"></h2><p data-i18n="originSampleHint"></p></div><label class="origin-check"><input id="originStatsOpt" type="checkbox"><span data-i18n="originStatsOpt"></span></label></div><div id="originChart" class="origin-chart" role="img"></div><div class="origin-actions"><button id="originClearStats" type="button" data-i18n="originClear"></button><span id="originStatsNote"></span></div></article>
+  <article class="origin-panel"><h2 data-i18n="originQuick"></h2><div class="origin-quick"><button type="button" data-origin-open="rulesets" data-i18n="originFilters"></button><button type="button" data-origin-open="privacy" data-i18n="originPrivacy"></button><button type="button" data-origin-open="exceptions" data-i18n="originExceptions"></button><button type="button" data-origin-open="settings" data-i18n="settingsPageName"></button></div></article>
+</section>
+<section data-pane="privacy"><div class="origin-page-head"><div><h1 data-i18n="originPrivacy"></h1><p data-i18n="originPrivacyHint"></p></div></div><div id="originPrivacyLists" class="origin-panel"></div><p id="originPrivacyStatus" role="status"></p></section>
+<section data-pane="exceptions"><div class="origin-page-head"><div><h1 data-i18n="originExceptions"></h1><p data-i18n="originExceptionsHint"></p></div></div><article class="origin-panel"><form id="originExceptionForm"><input id="originExceptionInput" type="text" required placeholder="example.com" aria-label="Website"><button type="submit" data-i18n="addButton"></button></form><div id="originExceptionsList"></div><p id="originExceptionsStatus" role="status"></p></article></section>
+<section data-pane="activity"><div class="origin-page-head"><div><h1 data-i18n="originActivity"></h1><p data-i18n="originActivityHint"></p></div></div><article class="origin-panel"><h2 id="originActivityHost">—</h2><p id="originActivityStatus" role="status"></p><input id="originActivitySearch" type="search" placeholder="Rule ID / ruleset" aria-label="Search"><div id="originActivityTable"></div></article></section>
 <section data-pane="settings">
     <div class="origin-hero"><h1 data-i18n="originSettings"></h1><p data-i18n="originIntro"></p></div>
     <div>
@@ -116,7 +134,7 @@
 
 <!-- -------- -->
 <section data-pane="rulesets">
-    <div id="lists"></div>
+    <div class="origin-page-head"><div><h1 data-i18n="originFilters"></h1><p data-i18n="originFiltersHint"></p></div><button type="button" id="originUpdateLists" data-i18n="originUpdate"></button></div><p id="originUpdateStatus" role="status"></p><div id="lists"></div>
     <aside>
         <p class="userScriptsInfo"><span data-i18n="customListImportUserScriptsInfo"></span> <span data-i18n="userScriptsInfo"></span></p>
         <details class="importRulesetURL"><summary data-i18n="customListImportLabel">_</summary>
@@ -298,6 +316,7 @@
 <script src="js/settings.js" type="module"></script>
 <script src="js/filter-manager-ui.js" type="module"></script>
 <script src="js/develop.js" type="module"></script>
+<script src="js/origin-center.js" type="module"></script>
 
 </body>
 </html>

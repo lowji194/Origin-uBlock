@@ -19,6 +19,8 @@
     Home: https://github.com/gorhill/uBlock
 */
 
+import { observe, getStats, setStats, clearStats } from './origin-stats.js';
+
 import {
     MODE_BASIC,
     MODE_OPTIMAL,
@@ -404,6 +406,57 @@ async function onMessage(request, sender) {
 
     switch ( request.what ) {
 
+    case 'originObserve':
+        return observe(request.count, request.tabId);
+    case 'originGetStats':
+        return getStats();
+    case 'originSetStats':
+        return setStats(request.enabled);
+    case 'originClearStats':
+        return clearStats();
+    case 'originRefreshLists': {
+        const count = await updateImportedLists();
+        if (count > 0) {
+            await updateCompiledFilters();
+            await Promise.all([registerUserScripts(),updateUserRules()]);
+        }
+        return {count};
+    }
+    case 'originGlobalToggle': {
+        const forbidden = await adminReadEx('disabledFeatures') || [];
+        if ( forbidden.includes('dashboard') || forbidden.includes('filteringMode') || await adminReadEx('defaultFiltering') !== undefined ) return getDefaultFilteringMode();
+        const before = await getDefaultFilteringMode();
+        if (request.enabled === false && before > 0) {
+            await localWrite('origin.pause.snapshot',await getFilteringModeDetails(true));
+            await setDefaultFilteringMode(0);
+        } else if (request.enabled === true && before === 0) {
+            const snapshot = await localRead('origin.pause.snapshot');
+            if (snapshot) {
+                await setFilteringModeDetails(snapshot);
+                await localRemove('origin.pause.snapshot');
+            } else {
+                await setDefaultFilteringMode(await hasBroadHostPermissions() ? 2 : 1);
+            }
+        }
+        await Promise.all([registerContentScripts(),registerUserScripts()]);
+        return getDefaultFilteringMode();
+    }
+    case 'originException': {
+        const forbidden = await adminReadEx('disabledFeatures') || [];
+        if ( forbidden.includes('dashboard') || forbidden.includes('filteringMode') || await getDefaultFilteringMode() === 0 ) return false;
+        const host=request.hostname;
+        if(typeof host!=='string'||host==='all-urls'||!/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(host)||!host.includes('.')||host.includes('..'))return false;
+        const modes=await getFilteringModeDetails(true);
+        if(request.remove===true) {
+            modes.none=modes.none.filter(x=>x!==host);
+            await setFilteringModeDetails(modes);
+        } else {
+            await setFilteringMode(host,0);
+        }
+        await Promise.all([registerContentScripts(),registerUserScripts()]);
+        return true;
+    }
+
     case 'applyRulesets': {
         await applyRulesets(request.enabledRulesets);
         if ( request.toRemove ) {
@@ -558,6 +611,7 @@ async function onMessage(request, sender) {
     case 'setDefaultFilteringMode': {
         const beforeLevel = await getDefaultFilteringMode();
         const afterLevel = await setDefaultFilteringMode(request.level);
+        if (afterLevel > 0) await localRemove('origin.pause.snapshot');
         if ( afterLevel !== beforeLevel ) {
             await Promise.all([ registerContentScripts(), registerUserScripts() ]);
         }

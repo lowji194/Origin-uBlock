@@ -479,7 +479,7 @@
     "message": "Bật hoặc tắt bảo vệ"
   },
   "originCount": {
-    "message": "Yêu cầu đã chặn trên tab"
+    "message": "Lượt lọc trên tab"
   },
   "originSettings": {
     "message": "Trung tâm bảo vệ"
@@ -489,5 +489,116 @@
   },
   "originFork": {
     "message": "Bản fork độc lập, không liên kết với uBlock Origin."
+  },
+  "originOverview": {
+    "message": "Tổng quan"
+  },
+  "originPrivacy": {
+    "message": "Bảo vệ riêng tư"
+  },
+  "originExceptions": {
+    "message": "Danh sách ngoại lệ"
+  },
+  "originActivity": {
+    "message": "Nhật ký lọc"
+  },
+  "originFilters": {
+    "message": "Bộ lọc quảng cáo"
+  },
+  "originHide": {
+    "message": "Ẩn phần tử"
+  },
+  "originMode": {
+    "message": "Mức độ bảo vệ"
+  },
+  "originEnabledLists": {
+    "message": "Bộ lọc hoạt động"
+  },
+  "originRefresh": {
+    "message": "Làm mới"
+  },
+  "originGlobalInfo": {
+    "message": "Bảo vệ mặc định cho trang web không có ngoại lệ."
+  },
+  "originObserved": {
+    "message": "Lượt lọc quan sát hôm nay"
+  },
+  "originSampleHint": {
+    "message": "Số liệu quan sát từ biểu tượng, không phải tổng đầy đủ."
+  },
+  "originExceptionsHint": {
+    "message": "Trang web được loại khỏi quá trình lọc."
+  },
+  "originChart": {
+    "message": "Hoạt động quan sát · 7 ngày"
+  },
+  "originStatsOpt": {
+    "message": "Lưu thống kê trên thiết bị"
+  },
+  "originClear": {
+    "message": "Xóa thống kê"
+  },
+  "originQuick": {
+    "message": "Thao tác nhanh"
+  },
+  "originPrivacyHint": {
+    "message": "Quản lý bộ lọc theo dõi, cookie, widget mạng xã hội."
+  },
+  "originActivityHint": {
+    "message": "Quy tắc khớp gần đây của tab mở từ popup. Chrome có thể giới hạn truy cập; không thu thập URL."
+  },
+  "originFiltersHint": {
+    "message": "Chọn và quản lý danh sách được engine sử dụng."
+  },
+  "originUpdate": {
+    "message": "Cập nhật bộ lọc tùy chỉnh"
+  },
+  "originEmpty": {
+    "message": "Chưa có dữ liệu"
+  },
+  "originRemove": {
+    "message": "Xóa"
+  },
+  "originSaveError": {
+    "message": "Không thể áp dụng thay đổi."
+  },
+  "originSaved": {
+    "message": "Đã lưu"
+  },
+  "originUpdating": {
+    "message": "Đang cập nhật…"
+  },
+  "originUpdated": {
+    "message": "Đã chạy cập nhật bộ lọc tùy chỉnh. Bộ lọc tích hợp cập nhật qua bản phát hành."
+  },
+  "originInvalid": {
+    "message": "Nhập tên miền hợp lệ."
+  },
+  "originPausedHint": {
+    "message": "Bật lại bảo vệ toàn cục trước khi sửa ngoại lệ."
+  },
+  "originActivityUnavailable": {
+    "message": "Chrome không cấp quyền đọc quy tắc khớp. Hãy mở nhật ký từ popup trên website."
+  },
+  "originNoStats": {
+    "message": "Thống kê đang tắt. Bật để lưu mẫu tổng hợp cục bộ."
+  },
+  "originRules": {
+    "message": "Quy tắc mạng"
+  },
+  "originGlobalOn": {
+    "message": "Hệ thống đang hoạt động"
+  },
+  "originGlobalOff": {
+    "message": "Hệ thống đang tạm dừng"
+  },
+  "originTime": {
+    "message": "Thời gian"
+  },
+  "originRuleId": {
+    "message": "Mã quy tắc"
+  },
+  "originRuleset": {
+    "message": "Bộ lọc"
   }
 }

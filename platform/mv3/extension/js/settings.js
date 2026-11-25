@@ -81,6 +81,7 @@ function renderWidgets() {
 
 function renderDefaultMode() {
     const defaultLevel = self.cachedRulesetData.defaultFilteringMode;
+    for (const card of document.querySelectorAll('.filteringModeCard input[type=radio]')) card.checked = false;
     if ( defaultLevel !== 0 ) {
         qs$(`.filteringModeCard input[type="radio"][value="${defaultLevel}"]`).checked = true;
     } else {

@@ -42,16 +42,18 @@ dom.attr('a', 'target', '_blank');
 dom.on('#dashboard-nav', 'click', '.tabButton', ev => {
     const { pane } = ev.target.dataset;
     dom.body.dataset.pane = pane;
-    if ( pane === 'settings' ) {
+    if ( pane === 'overview' ) {
         localRemove('dashboard.activePane');
     } else {
         localWrite('dashboard.activePane', pane);
     }
 });
 
+const availablePanes = new Set(['overview','rulesets','privacy','exceptions','filters','activity','settings','develop','about']);
+const explicitPane = new URL(location.href).searchParams.get('pane');
 localRead('dashboard.activePane').then(pane => {
-    if ( typeof pane !== 'string' ) { return; }
-    dom.body.dataset.pane = pane;
+    const chosen = availablePanes.has(explicitPane) ? explicitPane : pane;
+    if (availablePanes.has(chosen)) dom.body.dataset.pane = chosen;
 });
 
 // Update troubleshooting on-demand
