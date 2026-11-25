@@ -128,7 +128,7 @@ const privacyActive = computed(
             {{
               stealthCount > 0
                 ? tr(`Stealth ${stealthCount} lớp`, `${stealthCount} Stealth layers`)
-                : tr('Chuẩn MV3', 'MV3 standard')
+                : tr('Tiêu chuẩn', 'Standard')
             }}
           </template>
         </p>
@@ -193,7 +193,7 @@ const privacyActive = computed(
           <span class="stat-icon-box"><Shield :size="17" /></span>
         </div>
         <strong>{{ num(ruleCount) }}</strong>
-        <small>{{ tr('Quy tắc DNR đã biên dịch', 'Compiled DNR rules') }}</small>
+        <small>{{ tr('Quy tắc lọc đang nạp', 'Loaded filter rules') }}</small>
       </article>
 
       <article class="stat-card">
@@ -202,7 +202,7 @@ const privacyActive = computed(
           <span class="stat-icon-box info"><ListFilter :size="17" /></span>
         </div>
         <strong>{{ enabledSet.size }} / {{ config.maxNumberOfEnabledRulesets || 50 }}</strong>
-        <small>{{ tr('Giới hạn tĩnh Chrome MV3', 'Chrome MV3 static limit') }}</small>
+        <small>{{ tr('Bộ lọc đang bật / Tối đa', 'Enabled lists / Limit') }}</small>
       </article>
 
       <article class="stat-card">
@@ -222,8 +222,8 @@ const privacyActive = computed(
           <p>
             {{
               tr(
-                'Số liệu quan sát cục bộ từ biểu tượng trình duyệt, không thu thập URL.',
-                'Local counts observed from the browser badge, without collecting URLs.'
+                'Thống kê lượt chặn lưu cục bộ trên máy, hoàn toàn không thu thập URL.',
+                'Blocking counts saved locally on device, with zero URL tracking.'
               )
             }}
           </p>
@@ -267,12 +267,12 @@ const privacyActive = computed(
     <article class="panel">
       <div class="panel-header">
         <div>
-          <h2>{{ tr('Các lớp bảo vệ hội tụ', 'Unified protection layers') }}</h2>
+          <h2>{{ tr('Các mô-đun bảo vệ', 'Protection modules') }}</h2>
           <p>
             {{
               tr(
-                'Tổng hợp trạng thái giữa bộ lọc Adblock Plus, lá chắn Stealth AdGuard và công cụ uBlock MV3.',
-                'Combined status of Adblock Plus lists, AdGuard Stealth shields, and uBlock MV3 engine.'
+                'Trạng thái hoạt động của bộ lọc quảng cáo, chống theo dõi và lá chắn bảo mật.',
+                'Live status of ad blocking, anti-tracking, and web security shields.'
               )
             }}
           </p>
@@ -476,8 +476,8 @@ const privacyActive = computed(
           <small>
             {{
               tr(
-                'Toàn bộ Annoyances (Social, Chat, AI), chống xâm nhập LAN và ẩn Referer bên thứ ba.',
-                'All Annoyances (Social, Chat, AI), LAN intrusion shield and 3rd-party Referer removal.'
+                'Toàn bộ bộ lọc phiền nhiễu (Cookie, Social, Overlay), chống xâm nhập LAN và ẩn Referer bên thứ ba.',
+                'All Annoyances lists (Cookie, Social, Overlay), LAN shield and 3rd-party Referer removal.'
               )
             }}
           </small>

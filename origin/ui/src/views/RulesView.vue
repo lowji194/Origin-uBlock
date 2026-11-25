@@ -116,7 +116,7 @@ async function openExtensionSettings() {
     <article class="panel">
       <div class="panel-header">
         <div>
-          <h2>{{ tr('Trình tạo quy tắc nhanh (AdGuard & ABP Syntax)', 'Quick rule builder') }}</h2>
+          <h2>{{ tr('Trình tạo quy tắc nhanh', 'Quick rule builder') }}</h2>
           <p>
             {{
               tr(
@@ -128,7 +128,7 @@ async function openExtensionSettings() {
         </div>
         <StatusPill
           tone="info"
-          :label="`${num(userRulesCount)} ${tr('quy tắc DNR đang chạy', 'active DNR rules')}`"
+          :label="`${num(userRulesCount)} ${tr('quy tắc tùy chỉnh đang chạy', 'active user rules')}`"
         />
       </div>
 

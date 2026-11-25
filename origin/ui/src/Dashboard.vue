@@ -20,6 +20,7 @@ import {
 } from 'lucide-vue-next';
 import BrandLogo from './components/BrandLogo.vue';
 import StatusPill from './components/StatusPill.vue';
+import SiteFooter from './components/SiteFooter.vue';
 import OverviewView from './views/OverviewView.vue';
 import FiltersView from './views/FiltersView.vue';
 import PrivacyView from './views/PrivacyView.vue';
@@ -109,16 +110,16 @@ const nav = computed(() => [
 
 const descriptions = computed<Record<string, string>>(() => ({
   overview: tr(
-    'Giám sát bảo vệ, lớp lá chắn hội tụ và cấu hình nhanh.',
-    'Monitor protection, unified shields and quick presets.'
+    'Giám sát trạng thái bảo vệ, các mô-đun chặn lọc và cấu hình nhanh.',
+    'Monitor protection status, active shields and quick presets.'
   ),
   filters: tr(
     'Quản lý danh sách lọc quảng cáo, khu vực và bộ lọc tùy chỉnh.',
     'Manage ad blocking, regional and custom filter lists.'
   ),
   privacy: tr(
-    'Chế độ tàng hình AdGuard Stealth MV3, chống theo dõi và chặn phiền nhiễu.',
-    'AdGuard MV3 Stealth mode, anti-tracking and annoyance shields.'
+    'Chế độ tàng hình Stealth, chống theo dõi và chặn thành phần gây phiền nhiễu.',
+    'Stealth privacy shields, anti-tracking and annoyance blocking.'
   ),
   exceptions: tr(
     'Quản lý trang web được cho phép (nhập đơn lẻ hoặc hàng loạt).',
@@ -129,12 +130,12 @@ const descriptions = computed<Record<string, string>>(() => ({
     'Quick rule builder, custom filter rules and hidden elements.'
   ),
   activity: tr(
-    'Nhật ký quy tắc khớp theo tab và thanh tra chi tiết điều kiện DNR.',
-    'Per-tab matched rule log and live DNR rule inspector.'
+    'Nhật ký quy tắc khớp theo từng trang và tra cứu điều kiện lọc.',
+    'Per-tab matched rule log and live rule inspector.'
   ),
   settings: tr(
-    'Mức bảo vệ, hành vi, giao diện, sao lưu và chẩn đoán MV3.',
-    'Protection level, behavior, appearance, backup and MV3 diagnostics.'
+    'Mức bảo vệ, hành vi, giao diện, sao lưu và thông tin hệ thống.',
+    'Protection level, behavior, appearance, backup and system info.'
   ),
   about: tr(
     'Thông tin phiên bản, mã nguồn GPL-3.0 và cam kết không telemetry.',
@@ -699,6 +700,8 @@ onUnmounted(() => {
             @go="go"
           />
         </template>
+
+        <SiteFooter />
       </div>
     </main>
 

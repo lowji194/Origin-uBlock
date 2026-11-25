@@ -21,6 +21,7 @@ import {
 } from 'lucide-vue-next';
 import BrandLogo from './components/BrandLogo.vue';
 import StatusPill from './components/StatusPill.vue';
+import SiteFooter from './components/SiteFooter.vue';
 import {
   web,
   api,
@@ -577,9 +578,6 @@ onUnmounted(() => {
       </button>
     </nav>
 
-    <footer class="popup-footer">
-      <span>v{{ version }} · Zero Acceptable Ads</span>
-      <span>{{ tr('Không telemetry', 'No telemetry') }}</span>
-    </footer>
+    <SiteFooter compact />
   </main>
 </template>

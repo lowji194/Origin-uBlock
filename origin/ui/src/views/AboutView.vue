@@ -88,8 +88,8 @@ defineEmits<{
       <p>
         {{
           tr(
-            'Bản fork độc lập phát triển trên nền tảng uBlock Origin Lite (MV3), kết hợp trải nghiệm quản lý trực quan và các lớp bảo vệ nổi bật từ AdGuard và Adblock Plus. Không liên kết chính thức với uBlock Origin, AdGuard hay Adblock Plus.',
-            'Independent unofficial fork built on uBlock Origin Lite (MV3), combining protection workflows inspired by AdGuard and Adblock Plus. Not affiliated with uBlock Origin, AdGuard or Adblock Plus.'
+            'Tiện ích chặn quảng cáo và bảo vệ quyền riêng tư phát triển trên nền tảng uBlock Origin Lite (MV3), tích hợp sẵn bộ lọc Việt Nam, chế độ Stealth và giao diện quản lý trực quan. Không liên kết chính thức với uBlock Origin, AdGuard hay Adblock Plus.',
+            'Privacy-focused ad blocker built on uBlock Origin Lite (MV3), featuring native Vietnam filters, Stealth privacy shields, and an intuitive dashboard. Not affiliated with uBlock Origin, AdGuard or Adblock Plus.'
           )
         }}
       </p>

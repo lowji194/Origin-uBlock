@@ -242,11 +242,20 @@ try{
   console.log('Popup dimensions:',popupHeight);
   if(process.env.ORIGIN_SCREENSHOTS){
         try{
-
           const shot=await cdp('Page.captureScreenshot',{format:'png'},session);
           writeFileSync(join(process.env.ORIGIN_SCREENSHOTS,'popup.png'),Buffer.from(shot.data,'base64'));
         }catch(e){console.log('Popup screenshot unavailable',e.message);}
       }
+      const footerOk=await evaluate("document.querySelector('.popup-footer')?.innerText.includes('theloi.io.vn')&&!!document.querySelector('.popup-footer .coffee-btn')",session);
+      assert(footerOk,'Expected footer author website and coffee button');
+      await evaluate("document.querySelector('.popup-footer .coffee-btn').click()",session);
+      await wait(250);
+      const qrOk=await evaluate("(()=>{const img=document.querySelector('[role=dialog] img.donate-qr-img');return Boolean(img&&img.complete&&img.naturalWidth>0);})()",session);
+      assert(qrOk,'Expected Donate QR modal image to render');
+      await evaluate("document.querySelector('[role=dialog] .icon-button').click()",session);
+      await wait(150);
+      assert.equal(await evaluate("Boolean(document.querySelector('[role=dialog]'))",session),false);
+      console.log('Footer author & Donate QR modal: passed');
     }else throw Error('Popup target not exposed in headless browser');
   }catch(e){console.log('Popup headless check unavailable:',e.message);throw e;}
   console.log('Smoke passed');

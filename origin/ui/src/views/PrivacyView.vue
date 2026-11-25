@@ -46,7 +46,7 @@ const stealthItems = computed(() => [
       'Tự động loại bỏ utm_*, fbclid, gclid, yclid, mc_cid, igshid khỏi thanh địa chỉ khi điều hướng.',
       'Automatically removes utm_*, fbclid, gclid, yclid, mc_cid, igshid on page navigation.'
     ),
-    badge: 'DNR Transform',
+    badge: 'URL Cleaner',
   },
   {
     key: 'blockPing' as const,
@@ -56,7 +56,7 @@ const stealthItems = computed(() => [
       'Ngăn trình duyệt gửi tín hiệu sendBeacon, hyperlink auditing (ping) và csp_report tới bên thứ ba.',
       'Blocks third-party navigator.sendBeacon, ping auditing and csp_report requests.'
     ),
-    badge: 'Stealth DNR',
+    badge: 'Beacon Block',
   },
   {
     key: 'stripReferrer' as const,
@@ -113,12 +113,12 @@ function annoyanceIcon(id: string) {
     <article class="panel">
       <div class="panel-header">
         <div>
-          <h2>{{ tr('Chế độ tàng hình (AdGuard Stealth MV3)', 'Stealth Mode (AdGuard MV3 Shield)') }}</h2>
+          <h2>{{ tr('Chế độ tàng hình (Stealth Mode)', 'Stealth Mode') }}</h2>
           <p>
             {{
               tr(
-                'Thực thi trực tiếp bằng quy tắc DNR động của Chromium, tôn trọng danh sách ngoại lệ của bạn.',
-                'Enforced natively via dynamic Chromium DNR rules and respects your website allowlist.'
+                'Ngăn rò rỉ dữ liệu theo dõi trực tiếp qua bộ lọc mạng trình duyệt, tôn trọng danh sách ngoại lệ.',
+                'Prevents tracking leaks natively in the browser and respects your website allowlist.'
               )
             }}
           </p>
