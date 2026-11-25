@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="css/develop.css">
 
 <link rel="icon" type="image/png" href="img/icon_64.png"/>
+<link rel="stylesheet" href="css/origin-dashboard.css">
 </head>
 
 <body data-pane="settings" class="loading">
@@ -24,7 +25,7 @@
 <!-- -------- -->
 <header>
     <nav id="dashboard-nav">
-        <span class="logo"><img data-i18n-title="extName" src="img/ublock.svg" alt="uBO Lite"></span><!--
+        <span class="logo origin-nav-brand"><img src="img/ublock.svg" alt=""><span><strong>Origin uBlock</strong><small data-i18n="originTagline"></small></span></span><!--
      --><button class="tabButton" type="button" data-pane="settings" data-i18n="settingsPageName" tabindex="0"></button><!--
      --><button class="tabButton" type="button" data-pane="rulesets" data-i18n="aboutFilterLists" tabindex="0"></button><!--
      --><button class="tabButton" type="button" data-pane="filters" data-i18n="customFiltersPageName"tabindex="0"></button><!--
@@ -41,6 +42,7 @@
 
 <!-- -------- -->
 <section data-pane="settings">
+    <div class="origin-hero"><h1 data-i18n="originSettings"></h1><p data-i18n="originIntro"></p></div>
     <div>
         <h3 data-i18n="defaultFilteringModeSectionLabel"></h3>
         <p data-i18n="defaultFilteringModeDescription"></p>
@@ -167,7 +169,7 @@
 <!-- -------- -->
 <section data-pane="about">
     <div class="body">
-        <div id="aboutNameVer" class="li"></div>
+        <div id="aboutNameVer" class="li"></div><p data-i18n="originFork"></p><p><a href="https://github.com/lowji194/Origin-uBlock">Origin uBlock source code</a></p>
         <div class="liul">
             <div class="li">Copyright (c) Raymond Hill 2014-present</div>
         </div>

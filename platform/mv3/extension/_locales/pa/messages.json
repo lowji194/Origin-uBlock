@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "uBlock Origin Lite",
+    "message": "Origin uBlock",
     "description": "extension name."
   },
   "extShortDesc": {
@@ -12,7 +12,7 @@
     "description": "Appears aside each filter list in the _3rd-party filters_ pane"
   },
   "dashboardName": {
-    "message": "uBO Lite — ਡੈਸ਼ਬੋਰਡ",
+    "message": "Origin uBlock — Dashboard",
     "description": "English: uBO Lite — Dashboard"
   },
   "settingsPageName": {

@@ -11,12 +11,19 @@
 <link rel="stylesheet" href="css/filtering-mode.css">
 <link rel="stylesheet" href="css/popup.css">
 <title data-i18n="extName"></title>
+<link rel="stylesheet" href="css/origin-popup.css">
 </head>
 
 <body class="loading busy">
 
 <main>
+    <header class="origin-brand"><img src="img/ublock.svg" alt=""><div><strong>Origin uBlock</strong><small data-i18n="originTagline"></small></div><span class="origin-version">1.0</span></header>
     <div id="hostname"><span></span>&shy;<span></span></div>
+    <div class="origin-protection needData">
+        <button type="button" id="originPower" data-i18n-title="originPower" aria-pressed="false"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 7v18M14 13a16 16 0 1 0 20 0" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/></svg></button>
+        <strong id="originStatus" aria-live="polite"></strong>
+        <div class="origin-count" hidden><strong id="originCount"></strong><span data-i18n="originCount"></span></div>
+    </div>
     <!-- -------- -->
     <div class="filteringModeSlider needData">
         <div class="filteringModeButton"><div></div></div>

@@ -41,10 +41,25 @@ function renderAdminRules() {
 /******************************************************************************/
 
 const BLOCKING_MODE_MAX = 3;
+let lastActiveMode = 2;
+dom.on('#originPower', 'click', () => {
+    const slider = qs$('.filteringModeSlider');
+    const level = Number(slider.dataset.level);
+    if (!Number.isInteger(level) || dom.body.dataset.forbid?.includes('filteringMode')) { return; }
+    slider.dataset.levelBefore = String(level);
+    setFilteringMode(level > 0 ? 0 : lastActiveMode, true);
+});
 
 async function setFilteringMode(level, commit = false) {
     const modeSlider = qs$('.filteringModeSlider');
     modeSlider.dataset.level = level;
+    const on = level > 0;
+    const power = qs$('#originPower');
+    power.setAttribute('aria-pressed', String(on));
+    power.setAttribute('aria-label', i18n$('originPower'));
+    dom.body.dataset.originActive = String(on);
+    dom.text('#originStatus', i18n$(on ? 'originOn' : 'originOff'));
+    if (on) { lastActiveMode = level; }
     if ( qs$('.filteringModeSlider.moving') === null ) {
         dom.text(
             '#filteringModeText > span:nth-of-type(1)',
@@ -328,6 +343,13 @@ async function init() {
     renderAdminRules();
 
     setFilteringMode(popupPanelData.level);
+    try {
+        const count = await browser.action.getBadgeText({ tabId: currentTab.id });
+        if (/^\d+$/.test(count)) {
+            dom.text('#originCount', count);
+            qs$('.origin-count').hidden = false;
+        }
+    } catch { /* Badge count is not exposed in all browsers. */ }
 
     dom.text('#hostname', punycode.toUnicode(tabURL.hostname));
 

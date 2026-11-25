@@ -5,7 +5,9 @@
   },
   "author": "Raymond Hill",
   "background": {
-    "scripts": [ "/js/background.js" ],
+    "scripts": [
+      "/js/background.js"
+    ],
     "type": "module",
     "persistent": false
   },
@@ -23,8 +25,7 @@
     }
   },
   "declarative_net_request": {
-    "rule_resources": [
-    ]
+    "rule_resources": []
   },
   "default_locale": "en",
   "description": "__MSG_extShortDesc__",
@@ -52,7 +53,7 @@
     "storage",
     "unlimitedStorage"
   ],
-  "short_name": "uBO Lite",
+  "short_name": "Origin uBlock",
   "version": "1.0",
   "web_accessible_resources": [
     {

@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "uBlock Origin Lite",
+    "message": "Origin uBlock",
     "description": "extension name."
   },
   "extShortDesc": {
@@ -12,7 +12,7 @@
     "description": "Appears aside each filter list in the _3rd-party filters_ pane"
   },
   "dashboardName": {
-    "message": "uBO Lite — Bảng điều khiển",
+    "message": "Origin uBlock — Bảng điều khiển",
     "description": "English: uBO Lite — Dashboard"
   },
   "settingsPageName": {
@@ -462,5 +462,32 @@
   "unpickerUsage": {
     "message": "Chọn một bộ lọc bên dưới để đánh dấu các phần tử phù hợp trong trang web. Nhấp vào thùng rác để xóa bộ lọc.",
     "description": "Summary description on how to use the tool to remove custom filters"
+  },
+  "originTagline": {
+    "message": "Bảo vệ quyền riêng tư"
+  },
+  "originOn": {
+    "message": "Đang bảo vệ trang web"
+  },
+  "originOff": {
+    "message": "Đã tạm dừng bảo vệ"
+  },
+  "originUnavailable": {
+    "message": "Trang này không hỗ trợ lọc"
+  },
+  "originPower": {
+    "message": "Bật hoặc tắt bảo vệ"
+  },
+  "originCount": {
+    "message": "Yêu cầu đã chặn trên tab"
+  },
+  "originSettings": {
+    "message": "Trung tâm bảo vệ"
+  },
+  "originIntro": {
+    "message": "Quản lý mức lọc, bộ lọc và ngoại lệ của bạn."
+  },
+  "originFork": {
+    "message": "Bản fork độc lập, không liên kết với uBlock Origin."
   }
 }

@@ -68,7 +68,7 @@ function reportSpecificFilterType() {
 
 async function reportSpecificFilterIssue() {
     const githubURL = new URL(
-        'https://github.com/uBlockOrigin/uAssets/issues/new?template=specific_report_from_ubol.yml'
+        'https://github.com/lowji194/Origin-uBlock/issues/new'
     );
     const issueType = reportSpecificFilterType();
     let title = `${reportedPage.hostname}: ${issueType}`;
@@ -88,7 +88,7 @@ async function reportSpecificFilterIssue() {
         '```\n</details>',
         '',
     ].join('\n');
-    githubURL.searchParams.set('configuration', configBody);
+    githubURL.searchParams.set('body', 'Category: ' + issueType + '\n\nWebsite: ' + qs$('select[name="url"]').value + '\n\n' + configBody);
     sendMessage({ what: 'gotoURL', url: githubURL.href });
 }
 
@@ -112,7 +112,7 @@ getTroubleshootingInfo(reportedPage).then(config => {
         });
 
         dom.on('[data-i18n="supportFindSpecificButton"]', 'click', ev => {
-            const url = new URL('https://github.com/uBlockOrigin/uAssets/issues');
+            const url = new URL('https://github.com/lowji194/Origin-uBlock/issues');
             url.searchParams.set('q', `is:issue sort:updated-desc "${reportedPage.hostname}" in:title`);
             sendMessage({ what: 'gotoURL', url: url.href });
             ev.preventDefault();
