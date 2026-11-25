@@ -34,7 +34,7 @@ try{
     if(r.exceptionDetails)throw Error(JSON.stringify(r.exceptionDetails));
     return r.result.value;
   };
-  await wait(1800);
+  for(let k=0;k<60;k++){if(await evaluate("!!document.querySelector('[data-page=overview]')"))break;await wait(150);}
   const info=await evaluate("({title:document.title,name:chrome.runtime.getManifest().name,version:chrome.runtime.getManifest().version,mv:chrome.runtime.getManifest().manifest_version,loading:!document.querySelector('[data-page=overview]'),nav:!!document.querySelector('.side-nav'),css:getComputedStyle(document.querySelector('.side-nav')).display})");
   console.log('Dashboard',info);assert.equal(info.mv,3);assert.equal(info.version,'2.1.0');assert.equal(info.name,'Origin uBlock (Lowji Edition)');assert.equal(info.loading,false);assert.equal(info.nav,true);
   const command=async(what,extra={})=>evaluate('chrome.runtime.sendMessage('+JSON.stringify({what,...extra})+')');
@@ -220,17 +220,21 @@ try{
   await cdp('Target.activateTarget',{targetId:p.targetId});
   try {
     await evaluate('chrome.action.openPopup()');
-    await wait(400);
-    const targets=(await cdp('Target.getTargets')).targetInfos;
-    const popup=targets.find(t=>t.url==='chrome-extension://'+id+'/popup.html');
+    let popup=null;
+    for(let k=0;k<25;k++){
+      await wait(200);
+      const targets=(await cdp('Target.getTargets')).targetInfos;
+      popup=targets.find(t=>t.url==='chrome-extension://'+id+'/popup.html');
+      if(popup)break;
+    }
     if(popup){
       const session=(await cdp('Target.attachToTarget',{targetId:popup.targetId,flatten:true})).sessionId;
+      const waitPopupReady=async()=>{for(let k=0;k<40;k++){if(!(await evaluate("document.querySelector('.power-button')?.disabled ?? true",session)))return;await wait(100);}};
+      await waitPopupReady();
       const state=await evaluate("({status:document.querySelector('.popup-hero h1').textContent,active:document.querySelector('.power-button').getAttribute('aria-pressed'),hostname:document.querySelector('.host').textContent,loading:document.querySelector('.power-button').disabled})",session);
       console.log('Popup:',state);assert.equal(state.loading,false);assert.equal(state.active,'true');
       assert.equal(await evaluate("document.querySelectorAll('.segmented button').length",session),3);
       assert.equal(await evaluate("document.querySelectorAll('.quick-nav button').length",session),4);
-      const waitPopupReady=async()=>{for(let k=0;k<40;k++){if(!(await evaluate("document.querySelector('.power-button')?.disabled ?? true",session)))return;await wait(100);}};
-      await waitPopupReady();
       await evaluate("document.querySelector('.power-button').click()",session);
       await waitPopupReady();
       assert.equal(await command('getFilteringMode',{hostname:'origin-smoke.test'}),0);
