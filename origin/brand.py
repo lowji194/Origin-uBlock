@@ -4,8 +4,8 @@ from PIL import Image, ImageDraw
 base=Path('platform/mv3/extension')
 for f in (base/'_locales').glob('*/messages.json'):
     d=json.loads(f.read_text())
-    d['extName']['message']='Origin uBlock'
-    d['dashboardName']['message']='Origin uBlock — Dashboard' if f.parent.name!='vi' else 'Origin uBlock — Bảng điều khiển'
+    d['extName']['message']='Origin uBlock (Lowji Edition)'
+    d['dashboardName']['message']='Origin uBlock (Lowji Edition) — Dashboard' if f.parent.name!='vi' else 'Origin uBlock (Lowji Edition) — Bảng điều khiển'
     if f.parent.name in ('en','vi'):
         vi=f.parent.name=='vi'
         for k,v in {

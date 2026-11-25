@@ -14,11 +14,27 @@ export function observe(count,tabId){return serial(async()=>{
     days[day]=(days[day]||0)+delta;
     const keys=Object.keys(days).sort();
     for(const key of keys.slice(0,-30))delete days[key];
-    await localWrite('origin.stats.days',days);
+    const daysSum=Object.values(days).reduce((a,b)=>a+Number(b||0),0);
+    const prevTotal=Number(await localRead('origin.stats.total'))||0;
+    const nextTotal=Math.max(daysSum,prevTotal+delta);
+    await Promise.all([
+        localWrite('origin.stats.days',days),
+        localWrite('origin.stats.total',nextTotal),
+    ]);
 });}
-export async function getStats(){return {enabled:await localRead('origin.stats.enabled')===true,days:await localRead('origin.stats.days')||{}};}
+export async function getStats(){
+    const [enabled,days,rawTotal]=await Promise.all([
+        localRead('origin.stats.enabled'),
+        localRead('origin.stats.days'),
+        localRead('origin.stats.total'),
+    ]);
+    const cleanDays=days||{};
+    const daysSum=Object.values(cleanDays).reduce((a,b)=>a+Number(b||0),0);
+    const total=Math.max(Number(rawTotal)||0,daysSum);
+    return {enabled:enabled===true,days:cleanDays,total};
+}
 export function setStats(enabled){return serial(async()=>{await localWrite('origin.stats.enabled',enabled===true);});}
-export function clearStats(){return serial(async()=>{await localWrite('origin.stats.days',{});await sessionWrite('origin.stats.tabs',{});});}
+export function clearStats(){return serial(async()=>{await localWrite('origin.stats.days',{});await localWrite('origin.stats.total',0);await sessionWrite('origin.stats.tabs',{});});}
 // Do not collect URL or history. Observe numeric browser badge values only.
 async function sample(tabId){
     if(await localRead('origin.stats.enabled')!==true)return;

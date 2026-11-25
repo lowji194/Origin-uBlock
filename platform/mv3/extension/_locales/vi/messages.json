@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "Origin uBlock",
+    "message": "Origin uBlock (Lowji Edition)",
     "description": "extension name."
   },
   "extShortDesc": {
@@ -12,7 +12,7 @@
     "description": "Appears aside each filter list in the _3rd-party filters_ pane"
   },
   "dashboardName": {
-    "message": "Origin uBlock — Bảng điều khiển",
+    "message": "Origin uBlock (Lowji Edition) — Bảng điều khiển",
     "description": "English: uBO Lite — Dashboard"
   },
   "settingsPageName": {
@@ -479,7 +479,7 @@
     "message": "Bật hoặc tắt bảo vệ"
   },
   "originCount": {
-    "message": "Lượt lọc trên tab"
+    "message": "Yêu cầu đã chặn trên tab"
   },
   "originSettings": {
     "message": "Trung tâm bảo vệ"

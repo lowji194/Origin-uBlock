@@ -20,6 +20,20 @@
 */
 
 import { observe, getStats, setStats, clearStats } from './origin-stats.js';
+import {
+    getStealthConfig,
+    setStealthConfig,
+    syncStealthDnrRules,
+    getActiveStealthRuleCount,
+} from './origin-stealth.js';
+import {
+    getTimers,
+    scheduleTimedPause,
+    clearTimerRecord,
+    cancelAndResumeTimer,
+    handleTimerAlarm,
+    processDueTimers,
+} from './origin-timers.js';
 
 import {
     MODE_BASIC,
@@ -299,6 +313,72 @@ async function processDeferredTasks() {
 
 /******************************************************************************/
 
+const HOSTNAME_RE = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
+
+function isValidHostnameInput(host) {
+    return typeof host === 'string' &&
+        host !== 'all-urls' &&
+        HOSTNAME_RE.test(host) &&
+        host.includes('.') &&
+        !host.includes('..');
+}
+
+async function setGlobalProtection(enabled) {
+    const forbidden = await adminReadEx('disabledFeatures') || [];
+    if ( forbidden.includes('dashboard') || forbidden.includes('filteringMode') || await adminReadEx('defaultFiltering') !== undefined ) {
+        return getDefaultFilteringMode();
+    }
+    const before = await getDefaultFilteringMode();
+    if ( enabled === false && before > 0 ) {
+        await localWrite('origin.pause.snapshot', await getFilteringModeDetails(true));
+        await setDefaultFilteringMode(0);
+    } else if ( enabled === true && before === 0 ) {
+        const snapshot = await localRead('origin.pause.snapshot');
+        if ( snapshot ) {
+            await setFilteringModeDetails(snapshot);
+            await localRemove('origin.pause.snapshot');
+        } else {
+            await setDefaultFilteringMode(await hasBroadHostPermissions() ? 2 : 1);
+        }
+        await clearTimerRecord('global');
+    }
+    await Promise.all([
+        registerContentScripts(),
+        registerUserScripts(),
+        syncStealthDnrRules(),
+    ]);
+    return getDefaultFilteringMode();
+}
+
+const timerHandlers = {
+    getDefaultMode: () => getDefaultFilteringMode(),
+    getSiteMode: hostname => getFilteringMode(hostname),
+    pauseGlobal: () => setGlobalProtection(false),
+    resumeGlobal: () => setGlobalProtection(true),
+    pauseSite: async hostname => {
+        const level = await setFilteringMode(hostname, 0);
+        await Promise.all([
+            registerContentScripts(),
+            registerUserScripts(),
+            syncStealthDnrRules(),
+        ]);
+        return level;
+    },
+    resumeSite: async (hostname, prevLevel) => {
+        const current = await getFilteringMode(hostname);
+        if ( current === 0 ) {
+            await setFilteringMode(hostname, prevLevel || (await hasBroadHostPermissions() ? 2 : 1));
+            await Promise.all([
+                registerContentScripts(),
+                registerUserScripts(),
+                syncStealthDnrRules(),
+            ]);
+        }
+    },
+};
+
+/******************************************************************************/
+
 async function onMessage(request, sender) {
 
     const tabId = sender?.tab?.id ?? false;
@@ -422,39 +502,181 @@ async function onMessage(request, sender) {
         }
         return {count};
     }
-    case 'originGlobalToggle': {
-        const forbidden = await adminReadEx('disabledFeatures') || [];
-        if ( forbidden.includes('dashboard') || forbidden.includes('filteringMode') || await adminReadEx('defaultFiltering') !== undefined ) return getDefaultFilteringMode();
-        const before = await getDefaultFilteringMode();
-        if (request.enabled === false && before > 0) {
-            await localWrite('origin.pause.snapshot',await getFilteringModeDetails(true));
-            await setDefaultFilteringMode(0);
-        } else if (request.enabled === true && before === 0) {
-            const snapshot = await localRead('origin.pause.snapshot');
-            if (snapshot) {
-                await setFilteringModeDetails(snapshot);
-                await localRemove('origin.pause.snapshot');
-            } else {
-                await setDefaultFilteringMode(await hasBroadHostPermissions() ? 2 : 1);
-            }
-        }
-        await Promise.all([registerContentScripts(),registerUserScripts()]);
-        return getDefaultFilteringMode();
-    }
+    case 'originGlobalToggle':
+        return setGlobalProtection(request.enabled === true);
     case 'originException': {
         const forbidden = await adminReadEx('disabledFeatures') || [];
         if ( forbidden.includes('dashboard') || forbidden.includes('filteringMode') || await getDefaultFilteringMode() === 0 ) return false;
-        const host=request.hostname;
-        if(typeof host!=='string'||host==='all-urls'||!/^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(host)||!host.includes('.')||host.includes('..'))return false;
-        const modes=await getFilteringModeDetails(true);
-        if(request.remove===true) {
-            modes.none=modes.none.filter(x=>x!==host);
+        const host = request.hostname;
+        if ( !isValidHostnameInput(host) ) return false;
+        const modes = await getFilteringModeDetails(true);
+        if ( request.remove === true ) {
+            modes.none = modes.none.filter(x => x !== host);
             await setFilteringModeDetails(modes);
+            await clearTimerRecord('site', host);
         } else {
-            await setFilteringMode(host,0);
+            await setFilteringMode(host, 0);
         }
-        await Promise.all([registerContentScripts(),registerUserScripts()]);
+        await Promise.all([
+            registerContentScripts(),
+            registerUserScripts(),
+            syncStealthDnrRules(),
+        ]);
         return true;
+    }
+    case 'originBulkExceptions': {
+        const forbidden = await adminReadEx('disabledFeatures') || [];
+        if ( forbidden.includes('dashboard') || forbidden.includes('filteringMode') || await getDefaultFilteringMode() === 0 ) {
+            return { changed: 0, total: 0 };
+        }
+        const list = Array.isArray(request.hostnames) ? request.hostnames : [];
+        const validHosts = Array.from(new Set(
+            list.map(h => String(h || '').trim().toLowerCase()).filter(isValidHostnameInput)
+        ));
+        if ( validHosts.length === 0 ) {
+            return { changed: 0, total: 0 };
+        }
+        const modes = await getFilteringModeDetails(true);
+        const noneSet = new Set(modes.none || []);
+        const action = request.action === 'remove' ? 'remove' : 'add';
+        let changed = 0;
+        for ( const hn of validHosts ) {
+            if ( action === 'remove' ) {
+                if ( noneSet.delete(hn) ) {
+                    changed += 1;
+                    await clearTimerRecord('site', hn);
+                }
+            } else if ( !noneSet.has(hn) ) {
+                noneSet.add(hn);
+                modes.basic = (modes.basic || []).filter(x => x !== hn);
+                modes.optimal = (modes.optimal || []).filter(x => x !== hn);
+                modes.complete = (modes.complete || []).filter(x => x !== hn);
+                changed += 1;
+            }
+        }
+        if ( changed > 0 ) {
+            modes.none = Array.from(noneSet);
+            await setFilteringModeDetails(modes);
+            await Promise.all([
+                registerContentScripts(),
+                registerUserScripts(),
+                syncStealthDnrRules(),
+            ]);
+        }
+        return { changed, total: validHosts.length };
+    }
+    case 'originGetStealth':
+        return getStealthConfig();
+    case 'originSetStealth':
+        return setStealthConfig(request.stealth || {});
+    case 'originGetTimers':
+        return getTimers();
+    case 'originTimedPause': {
+        const forbidden = await adminReadEx('disabledFeatures') || [];
+        if ( forbidden.includes('dashboard') || forbidden.includes('filteringMode') ) {
+            return getTimers();
+        }
+        return scheduleTimedPause(request, timerHandlers);
+    }
+    case 'originCancelTimer':
+        return cancelAndResumeTimer(request, timerHandlers);
+    case 'originApplyPreset': {
+        const preset = request.preset;
+        const [ defaultIds, rulesetDetails, currentEnabled, hasOmnipotence ] = await Promise.all([
+            getDefaultRulesetsFromEnv(),
+            getRulesetDetails(),
+            getEnabledRulesets(),
+            hasBroadHostPermissions(),
+        ]);
+        const validSet = new Set(rulesetDetails.keys());
+        const keepExtra = currentEnabled.filter(id => {
+            const d = rulesetDetails.get(id);
+            return d && (d.group === 'imported' || d.group === 'regions');
+        });
+        const targetSet = new Set([ ...defaultIds.filter(id => validSet.has(id)), ...keepExtra ]);
+        let stealthPatch = {
+            blockPing: false,
+            stripReferrer: false,
+            stripClientData: false,
+            stripUtmCustom: false,
+        };
+        let popupBlock = true;
+        let strictBlock = hasOmnipotence;
+        const adguardExtras = [
+            'adguard-annoyances',
+            'annoyances-cookies',
+            'annoyances-overlays',
+        ];
+        const maxExtras = [
+            ...adguardExtras,
+            'adguard-social',
+            'block-lan',
+        ];
+        if ( preset === 'adguard' ) {
+            for ( const id of adguardExtras ) {
+                if ( validSet.has(id) ) { targetSet.add(id); }
+            }
+            stealthPatch = {
+                blockPing: true,
+                stripReferrer: false,
+                stripClientData: true,
+                stripUtmCustom: true,
+            };
+        } else if ( preset === 'max' ) {
+            for ( const id of maxExtras ) {
+                if ( validSet.has(id) ) { targetSet.add(id); }
+            }
+            stealthPatch = {
+                blockPing: true,
+                stripReferrer: true,
+                stripClientData: true,
+                stripUtmCustom: true,
+            };
+        }
+        await applyRulesets(Array.from(targetSet));
+        await setStealthConfig(stealthPatch);
+        await setPopupBlockMode(popupBlock);
+        if ( hasOmnipotence ) {
+            await setStrictBlockMode(strictBlock);
+        }
+        await registerContentScripts();
+        broadcastMessage({
+            popupBlockMode: rulesetConfig.popupBlockMode,
+            strictBlockMode: rulesetConfig.strictBlockMode,
+        });
+        return {
+            enabledRulesets: await getEnabledRulesets(),
+            stealth: await getStealthConfig(),
+        };
+    }
+    case 'originGetDnrDiagnostics': {
+        const [
+            availableStaticRuleCount,
+            dynamicRules,
+            sessionRules,
+            userRules,
+            stealthRulesCount,
+            customFilters,
+            enabledRulesets,
+        ] = await Promise.all([
+            dnr.getAvailableStaticRuleCount().catch(() => null),
+            dnr.getDynamicRules().catch(() => []),
+            dnr.getSessionRules().catch(() => []),
+            getEffectiveUserRules().catch(() => []),
+            getActiveStealthRuleCount().catch(() => 0),
+            getAllCustomFilters().catch(() => []),
+            getEnabledRulesets().catch(() => []),
+        ]);
+        return {
+            availableStaticRuleCount,
+            maxStaticRulesets: dnr.MAX_NUMBER_OF_ENABLED_STATIC_RULESETS,
+            enabledRulesetsCount: enabledRulesets.length,
+            dynamicRulesCount: dynamicRules.length,
+            sessionRulesCount: sessionRules.length,
+            userRulesCount: userRules.length,
+            stealthRulesCount,
+            customSitesCount: customFilters.length,
+        };
     }
 
     case 'applyRulesets': {
@@ -596,7 +818,10 @@ async function onMessage(request, sender) {
         const beforeLevel = await getFilteringMode(request.hostname);
         if ( request.level === beforeLevel ) { return beforeLevel; }
         const afterLevel = await setFilteringMode(request.hostname, request.level);
-        await Promise.all([ registerContentScripts(), registerUserScripts() ]);
+        if ( afterLevel > 0 ) {
+            await clearTimerRecord('site', request.hostname);
+        }
+        await Promise.all([ registerContentScripts(), registerUserScripts(), syncStealthDnrRules() ]);
         return afterLevel;
     }
 
@@ -611,9 +836,12 @@ async function onMessage(request, sender) {
     case 'setDefaultFilteringMode': {
         const beforeLevel = await getDefaultFilteringMode();
         const afterLevel = await setDefaultFilteringMode(request.level);
-        if (afterLevel > 0) await localRemove('origin.pause.snapshot');
+        if (afterLevel > 0) {
+            await localRemove('origin.pause.snapshot');
+            await clearTimerRecord('global');
+        }
         if ( afterLevel !== beforeLevel ) {
-            await Promise.all([ registerContentScripts(), registerUserScripts() ]);
+            await Promise.all([ registerContentScripts(), registerUserScripts(), syncStealthDnrRules() ]);
         }
         return afterLevel;
     }
@@ -623,7 +851,7 @@ async function onMessage(request, sender) {
 
     case 'setFilteringModeDetails': {
         await setFilteringModeDetails(request.modes);
-        await Promise.all([ registerContentScripts(), registerUserScripts() ]);
+        await Promise.all([ registerContentScripts(), registerUserScripts(), syncStealthDnrRules() ]);
         const defaultFilteringMode = await getDefaultFilteringMode();
         broadcastMessage({ defaultFilteringMode });
         return getFilteringModeDetails(true);
@@ -882,6 +1110,8 @@ async function startSession() {
     }
 
     await processDeferredTasks();
+    await processDueTimers(timerHandlers);
+    await syncStealthDnrRules();
 
     // Required to ensure up to date properties are available when needed
     adminReadEx('disabledFeatures').then(items => {
@@ -967,6 +1197,10 @@ browser.commands.onCommand.addListener((...args) => {
 });
 
 browser.alarms.onAlarm.addListener(alarm => {
+    if ( alarm.name.startsWith('origin.resume.') ) {
+        isFullyInitialized.then(( ) => handleTimerAlarm(alarm.name, timerHandlers));
+        return;
+    }
     if ( alarm.name !== 'deferredJobs' ) { return; }
     isFullyInitialized.then(( ) => {
         if ( process.wakeupRun === false && process.firstAlarm !== true ) {

@@ -84,6 +84,10 @@ export async function backupToObject(currentConfig) {
     if ( typeof dnrRules === 'string' && dnrRules.length !== 0 ) {
         out.dnrRules = dnrRules.split(/\n+/);
     }
+    const originStealth = await sendMessage({ what: 'originGetStealth' });
+    if ( originStealth && Object.values(originStealth).some(Boolean) ) {
+        out.originStealth = originStealth;
+    }
     return out;
 }
 
@@ -211,5 +215,15 @@ export async function restoreFromObject(targetConfig) {
         await localRemove('userDnrRules');
     }
     await sendMessage({ what: 'updateUserDnrRules' });
+
+    await sendMessage({
+        what: 'originSetStealth',
+        stealth: targetConfig.originStealth ?? {
+            blockPing: false,
+            stripReferrer: false,
+            stripClientData: false,
+            stripUtmCustom: false,
+        },
+    });
 
 }

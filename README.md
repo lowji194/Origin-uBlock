@@ -1,36 +1,87 @@
-# Origin uBlock
+# Origin uBlock (Lowji Edition)
 
-**Chặn quảng cáo & bảo vệ quyền riêng tư.** Extension Chromium Manifest V3, giao diện độc lập, tiếng Việt / English.
+**Chặn quảng cáo toàn diện & bảo vệ quyền riêng tư trên nền tảng Chromium Manifest V3.**  
+Giao diện Vue 3 độc lập (Tiếng Việt / English), kết hợp sức mạnh engine **uBlock Origin Lite** cùng hệ sinh thái bộ lọc và tính năng bảo vệ tinh hoa từ **AdGuard** & **Adblock Plus**, tích hợp sẵn **bộ lọc Việt Nam tối ưu**.
 
-[Download / Tải bản build](https://github.com/lowji194/Origin-uBlock/releases) · [Build CI](https://github.com/lowji194/Origin-uBlock/actions) · [Issues](https://github.com/lowji194/Origin-uBlock/issues)
+[![Build MV3](https://github.com/lowji194/Origin-uBlock/actions/workflows/origin-build.yml/badge.svg)](https://github.com/lowji194/Origin-uBlock/actions/workflows/origin-build.yml)
+[![Latest Release](https://img.shields.io/github/v/release/lowji194/Origin-uBlock?label=Release)](https://github.com/lowji194/Origin-uBlock/releases/latest)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-087f78.svg)](LICENSE.txt)
 
-## v2.0.1 — Country flags
-- Hiển thị quốc kỳ từ tiêu đề bộ lọc, hỗ trợ cả danh sách nhập thủ công và danh sách tích hợp.
-- Nhận diện URL Vietnam Filter nếu tên đã lưu không có emoji.
+[Tải bản phát hành mới nhất (Releases)](https://github.com/lowji194/Origin-uBlock/releases/latest) · [Tự động Build CI](https://github.com/lowji194/Origin-uBlock/actions) · [Báo lỗi & Góp ý](https://github.com/lowji194/Origin-uBlock/issues)
 
-## v2.0.0 — Full UI Rewrite
-Popup và dashboard được viết mới bằng Vue 3, TypeScript, Tailwind CSS và Lucide SVG. Không sử dụng HTML/CSS giao diện popup/dashboard uBlock Lite trong hai entry point phát hành. Engine MV3, element picker, compiler, bảo mật và bộ lọc vẫn kế thừa upstream.
-- Bật/tắt bảo vệ theo website và toàn cục; ba mức bảo vệ.
-- Tám trang dashboard, bộ lọc có tìm kiếm/phân loại, bộ lọc riêng tư, ngoại lệ thêm/sửa/xóa, quy tắc tùy chỉnh và quản lý phần tử ẩn.
-- Light/Dark/System, tiếng Việt/English, hướng dẫn bắt đầu, sao lưu/khôi phục cài đặt lọc.
-- Biểu đồ từ lượt lọc quan sát (tùy chọn, lưu cục bộ); nhật ký quy tắc khớp theo tab phụ thuộc API MV3.
-- ABPVN công khai, EasyList, EasyPrivacy và uBlock Filters. Không đóng gói danh sách VIP/Premium.
-- Không có telemetry mới. Không cam kết thống kê đầy đủ hoặc tách chính xác ads/trackers.
+---
 
-## Giao diện thực tế
-![Dashboard](docs/origin/dashboard.png)
+## Tính năng nổi bật (v2.1.0)
 
-![Popup](docs/origin/popup.png)
+### 1. Bộ lọc tinh gọn — Sẵn sàng cho người dùng Việt Nam
+- **18 bộ lọc cốt lõi được chọn lọc** (rút gọn loại bỏ danh sách thừa, giữ tốc độ phản hồi nhanh và giới hạn MV3 gọn nhẹ):
+  - **🇻🇳 Bộ lọc Việt Nam bật sẵn:** [**Lowji194 – Vietnam Filter (Desktop)**](https://github.com/lowji194/AdsBlock-Filter) và **ABPVN List**, hiển thị cờ 🇻🇳 trực quan.
+  - **Quảng cáo & Theo dõi cốt lõi:** AdGuard Base Filter, EasyList (Adblock Plus), uBlock Filters (Ads & Unbreak), Peter Lowe, AdGuard Tracking Protection, AdGuard DNS Filter, EasyPrivacy, AdGuard URL Tracking Protection.
+  - **An toàn & Chống mã độc:** uBlock – Badware risks, Malicious URL Blocklist (URLhaus).
+  - **Tùy chọn mở rộng (qua Preset):** AdGuard Mobile Ads, Block LAN Intrusion, AdGuard Annoyances, AdGuard Social Media, EasyList Cookies & Overlays.
+- **Zero Acceptable Ads:** Không tham gia chương trình quảng cáo tài trợ, không đóng gói danh sách trả phí/VIP.
+- **Hồ sơ bảo vệ nhanh:** Chuyển đổi tức thì giữa **Chuẩn**, **Sạch + Stealth** và **Tối đa**, kèm thanh theo dõi hạn mức bộ lọc tĩnh Chrome MV3 (`12 / 50`).
 
-[Quản lý bộ lọc](docs/origin/filters.png) · [Cài đặt](docs/origin/settings.png)
+### 2. Lớp bảo vệ hợp nhất: uBlock × AdGuard × Adblock Plus
+| Nhóm tính năng | Khả năng thực thi trên Manifest V3 |
+| --- | --- |
+| **Điều khiển tức thì (Popup)** | Nút nguồn bật/tắt theo tên miền, **tạm dừng hẹn giờ (Snooze 5p / 15p / 30p)** tự động khôi phục qua `chrome.alarms`, chuyển nhanh 3 mức lọc (`Cơ bản / Tối ưu / Tối đa`), chặn phần tử trên trang (Element Picker), ẩn tạm thời & báo lỗi. |
+| **AdGuard Stealth MV3** | Thực thi bằng Dynamic DNR Rules (`ping`/`beacon` blocking, ẩn `Referer` bên thứ ba, xóa `X-Client-Data`, tự động gỡ tham số theo dõi `utm_*`, `fbclid`, `gclid`, `yclid`, `mc_cid`, `igshid`), tôn trọng danh sách ngoại lệ. |
+| **Quản lý ngoại lệ & Quy tắc** | Nhập/xuất hàng loạt Allowlist (`.txt`), trình tạo quy tắc nhanh (`\|\|domain^`, `@@\|\|domain^`, `##selector`, `$removeparam`), quản lý CSS selector đã ẩn bằng công cụ chọn theo từng website. |
+| **Kiểm tra quyền Tập lệnh người dùng** | Tự động kiểm tra `userScripts` API và hiện cảnh báo rõ ràng + nút mở nhanh chi tiết tiện ích khi người dùng thêm bộ lọc URL tùy chỉnh hoặc quy tắc CSS/scriptlet nâng cao. |
+| **Thanh tra & Minh bạch MV3** | Chế độ Nhà phát triển (DNR Inspector), chẩn đoán số quy tắc tĩnh/động/session thực tế, sao lưu/khôi phục JSON toàn bộ cấu hình (gồm cả Stealth). |
 
-Ảnh chụp từ Chrome kiểm thử độc lập; không tạo số liệu thống kê giả.
+### 3. Cam kết quyền riêng tư & Minh bạch kỹ thuật
+- Giao diện viết mới hoàn toàn bằng **Vue 3, TypeScript, Tailwind CSS và Lucide SVG**, hỗ trợ **Sáng / Tối / Theo hệ thống** và song ngữ **Tiếng Việt / English**.
+- **Không telemetry:** Không thu thập URL, không gửi dữ liệu phân tích ra ngoài. Biểu đồ thống kê theo ngày là **tùy chọn tắt mặc định**, chỉ đọc bộ đếm số cục bộ từ biểu tượng trình duyệt.
 
-## Cài đặt
-Tải ZIP tại Releases, giải nén, mở `chrome://extensions`, bật Developer mode và chọn Load unpacked, chọn thư mục chứa manifest.json.
+---
 
-## Build / kiểm thử
-Xem [ORIGIN.md](ORIGIN.md). Bản build dùng Vite và quy trình upstream, kèm smoke test bằng Chrome headless.
+## Ảnh giao diện thực tế (v2.1.0)
 
-## License / Attribution
-Independent unofficial fork of [gorhill/uBlock](https://github.com/gorhill/uBlock), not affiliated with uBlock Origin, AdGuard or Adblock Plus. Copyright (c) Raymond Hill and upstream contributors. GPL-3.0; see [LICENSE.txt](LICENSE.txt), [upstream README](README.upstream.md) and upstream asset licenses. Frontend dependencies: Vue, Lucide, Tailwind CSS. Their license notices are included in the built package.
+> Ảnh chụp tự động từ trình duyệt Chrome độc lập qua [origin/smoke.mjs](origin/smoke.mjs).
+
+### Trung tâm bảo vệ & Popup điều khiển nhanh
+| Tổng quan (Dashboard) | Popup thanh công cụ |
+| :---: | :---: |
+| ![Dashboard](docs/origin/dashboard.png) | ![Popup](docs/origin/popup.png) |
+
+### Quản lý bộ lọc Việt Nam 🇻🇳 & Cảnh báo Tập lệnh người dùng
+| Danh sách 18 bộ lọc tinh gọn | Bộ lọc Việt Nam & Cảnh báo *Allow User Scripts* |
+| :---: | :---: |
+| ![Filters](docs/origin/filters.png) | ![Vietnam Filters and User Scripts Warning](docs/origin/filters-vn.png) |
+
+### Quyền riêng tư Stealth, Cài đặt & Giới thiệu
+| AdGuard Stealth MV3 | Cài đặt & Bảo vệ | Giới thiệu v2.1.0 |
+| :---: | :---: | :---: |
+| ![Privacy Stealth](docs/origin/privacy.png) | ![Settings](docs/origin/settings.png) | ![About](docs/origin/about.png) |
+
+---
+
+## Hướng dẫn cài đặt (Chrome / Cốc Cốc / Edge / Brave)
+
+1. Tải tệp `Origin-uBlock-2.1.0-chromium.zip` tại trang [**Releases**](https://github.com/lowji194/Origin-uBlock/releases/latest) và giải nén ra một thư mục cố định.
+2. Mở trình duyệt và truy cập `chrome://extensions` *(hoặc `coccoc://extensions`, `edge://extensions`)*.
+3. Bật **Developer mode (Chế độ dành cho nhà phát triển)** ở góc trên bên phải.
+4. Nhấn **Load unpacked (Tải tiện ích đã giải nén)** và chọn thư mục vừa giải nén có chứa `manifest.json`.
+5. **Khuyên dùng (để chạy đầy đủ bộ lọc URL tùy chỉnh & scriptlet):** Nhấn **Details (Chi tiết)** của tiện ích **Origin uBlock (Lowji Edition)** và bật công tắc **Allow User Scripts (Cho phép tập lệnh người dùng)**.
+
+---
+
+## Tự Build & Kiểm thử từ mã nguồn
+
+Xem hướng dẫn chi tiết tại [ORIGIN.md](ORIGIN.md). Quy trình đóng gói hợp nhất engine upstream MV3 + biên dịch Vite UI (`origin/ui`) + kiểm chứng gói ZIP (`origin/verify.py`) và smoke test Chrome (`origin/smoke.mjs`):
+
+```bash
+git clone --recurse-submodules https://github.com/lowji194/Origin-uBlock.git
+cd Origin-uBlock
+bash origin/build.sh
+node origin/smoke.mjs dist/build/uBOLite.chromium
+```
+
+---
+
+## License & Attribution
+
+Independent unofficial fork of [gorhill/uBlock](https://github.com/gorhill/uBlock), not officially affiliated with **uBlock Origin**, **AdGuard**, or **Adblock Plus**.  
+Copyright (c) Raymond Hill and upstream contributors. Licensed under **GPL-3.0** — see [LICENSE.txt](LICENSE.txt), [README.upstream.md](README.upstream.md), and bundled third-party licenses (`licenses/origin-ui/` for Vue, Lucide, Tailwind CSS).

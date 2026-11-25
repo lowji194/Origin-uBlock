@@ -1,6 +1,6 @@
 {
   "extName": {
-    "message": "Origin uBlock",
+    "message": "Origin uBlock (Lowji Edition)",
     "description": "extension name."
   },
   "extShortDesc": {
@@ -12,7 +12,7 @@
     "description": "Appears aside each filter list in the _3rd-party filters_ pane"
   },
   "dashboardName": {
-    "message": "Origin uBlock — Dashboard",
+    "message": "Origin uBlock (Lowji Edition) — Dashboard",
     "description": "English: uBO Lite — Dashboard"
   },
   "settingsPageName": {
@@ -479,7 +479,7 @@
     "message": "Toggle site protection"
   },
   "originCount": {
-    "message": "Filtered actions on tab"
+    "message": "Blocked requests on this tab"
   },
   "originSettings": {
     "message": "Protection center"

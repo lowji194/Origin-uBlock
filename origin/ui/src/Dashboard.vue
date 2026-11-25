@@ -1,108 +1,713 @@
 <script setup lang="ts">
-import {ref,computed,onMounted,onUnmounted} from 'vue';
-import {ShieldCheck,Shield,LayoutDashboard,ListFilter,Fingerprint,Globe,Code2,Activity,Settings,Info,Search,RefreshCw,Plus,Trash2,Download,Upload,CheckCircle2,AlertCircle,ChevronRight,Sun,Moon,Monitor,ExternalLink,BookOpen,Menu,X,ArrowRight,Lock,SlidersHorizontal} from 'lucide-vue-next';
-import {web,api,loadPrefs,savePrefs,language,theme,tr,version,modeName,protectionModes,num,readCenter,setDefault,hostname,download} from './api';
-const pages=['overview','filters','privacy','exceptions','rules','activity','settings','about','welcome'];
-const initial=new URL(location.href).searchParams.get('pane')||'overview';
-const pane=ref(pages.includes(initial)?initial:initial==='rulesets'?'filters':'overview'),config=ref<any>(null),modes=ref<any>({none:[]}),stats=ref<any>({enabled:false,days:{}}),imported=ref<any[]>([]),loading=ref(true),busy=ref(false),toast=ref(''),bad=ref(false),mobile=ref(false),query=ref(''),group=ref('all'),onlyEnabled=ref(false),host=ref(''),importUrl=ref(''),rules=ref(''),ruleOriginal=ref(''),picked=ref<any[]>([]),activity=ref<any>(null),editHost=ref(''),activityQuery=ref(''),period=ref(7),fileInput=ref<HTMLInputElement|null>(null),ruleFile=ref<HTMLInputElement|null>(null);
-let timer:any,channel:BroadcastChannel|undefined,refreshGeneration=0;
-const nav=computed(()=>[{id:'overview',label:tr('Tổng quan','Overview'),icon:LayoutDashboard},{id:'filters',label:tr('Bộ lọc quảng cáo','Ad filters'),icon:ListFilter},{id:'privacy',label:tr('Bảo vệ riêng tư','Privacy protection'),icon:Fingerprint},{id:'exceptions',label:tr('Danh sách ngoại lệ','Allowlist'),icon:Globe},{id:'rules',label:tr('Quy tắc của tôi','My rules'),icon:Code2},{id:'activity',label:tr('Nhật ký lọc','Filtering log'),icon:Activity},{id:'settings',label:tr('Cài đặt','Settings'),icon:Settings},{id:'about',label:tr('Giới thiệu','About'),icon:Info}]);
-const descriptions=computed<Record<string,string>>(()=>({overview:tr('Quản lý trải nghiệm duyệt web an toàn và riêng tư.','Manage a safer, more private browsing experience.'),filters:tr('Chọn, tìm kiếm và quản lý danh sách lọc.','Choose, search and manage your filter lists.'),privacy:tr('Giảm theo dõi và những thành phần gây phiền nhiễu.','Reduce tracking and unwanted page elements.'),exceptions:tr('Trang web trong danh sách này không bị lọc.','Websites in this list are excluded from filtering.'),rules:tr('Thêm quy tắc lọc tương thích uBlock và quản lý phần tử đã ẩn.','Add uBlock-compatible filter rules and manage hidden elements.'),activity:tr('Quy tắc khớp gần đây từ tab được chọn trong popup.','Recent matched rules from the tab selected in the popup.'),settings:tr('Cá nhân hóa bảo vệ, giao diện và dữ liệu.','Customize protection, appearance and data.'),about:tr('Thông tin phiên bản, mã nguồn và quyền riêng tư.','Version, source code and privacy information.'),welcome:tr('Thiết lập bảo vệ trong vài thao tác.','Set up your protection in a few steps.')}));
-const title=computed(()=>nav.value.find(n=>n.id===pane.value)?.label||tr('Chào mừng','Welcome'));
-const enabled=computed(()=>new Set<string>(config.value?.enabledRulesets||[]));
-const protectedOn=computed(()=>Number(config.value?.defaultFilteringMode)>0);
-const restricted=computed(()=>config.value?.disabledFeatures?.includes('dashboard')===true);
-const modeRestricted=computed(()=>restricted.value||config.value?.disabledFeatures?.includes('filteringMode')===true);
-const listData=computed(()=>config.value?.rulesetDetails||[]);
-const ruleCount=computed(()=>listData.value.filter((r:any)=>enabled.value.has(r.id)).reduce((n:number,r:any)=>n+(r.rules?.plain||0)+(r.rules?.regex||0),0));
-const groups=computed(()=>[{id:'all',name:tr('Tất cả','All')},{id:'default',name:tr('Cơ bản','Essential')},{id:'ads',name:tr('Quảng cáo','Ads')},{id:'regions',name:tr('Theo khu vực','Regional')},{id:'privacy',name:tr('Riêng tư','Privacy')},{id:'annoyances',name:tr('Phiền nhiễu','Annoyances')},{id:'malware',name:tr('An toàn','Security')},{id:'imported',name:tr('Tùy chỉnh','Custom')},{id:'other',name:tr('Khác','Other')}]);
-const category=(r:any)=>r.group||'other';
-const flagMatch=(name:string)=>String(name||'').match(/^([\u{1F1E6}-\u{1F1FF}]{2})\s*/u);
-function flagCode(name:string){const m=flagMatch(name);return m?Array.from(m[1],ch=>String.fromCharCode(ch.codePointAt(0)!-0x1F1E6+97)).join(''):'';}
-function listFlag(r:any){
- const code=flagCode(r.name);if(code)return code;
- try{const u=new URL(r.id);if(u.hostname==='raw.githubusercontent.com'&&/^\/lowji194\/AdsBlock-Filter\/main\/filters\/(?:Vietnam_Filter_(?:Desktop|Mobile)|AdGuard_(?:Desktop|Android))\.txt$/i.test(u.pathname))return 'vn';}catch{}
- return '';
-}
-function flagURL(r:any){return web.runtime.getURL('img/flags-of-the-world/'+listFlag(r)+'.png');}
-function filterName(name:string){const m=flagMatch(name);if(!m)return name;const code=flagCode(name),rest=name.slice(m[0].length);return rest.startsWith(code+':')?rest.slice(3).trimStart():rest;}
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import {
+  LayoutDashboard,
+  ListFilter,
+  Fingerprint,
+  Globe,
+  Code2,
+  Activity,
+  Settings,
+  Info,
+  RefreshCw,
+  CheckCircle2,
+  AlertCircle,
+  ChevronRight,
+  BookOpen,
+  Menu,
+  X,
+  ShieldCheck,
+} from 'lucide-vue-next';
+import BrandLogo from './components/BrandLogo.vue';
+import StatusPill from './components/StatusPill.vue';
+import OverviewView from './views/OverviewView.vue';
+import FiltersView from './views/FiltersView.vue';
+import PrivacyView from './views/PrivacyView.vue';
+import ExceptionsView from './views/ExceptionsView.vue';
+import RulesView from './views/RulesView.vue';
+import ActivityView from './views/ActivityView.vue';
+import SettingsView from './views/SettingsView.vue';
+import AboutView from './views/AboutView.vue';
+import {
+  web,
+  api,
+  loadPrefs,
+  savePrefs,
+  tr,
+  version,
+  readCenter,
+  setDefault,
+  hostname,
+  formatCountdown,
+} from './api';
+import type {
+  StealthConfig,
+  TimerState,
+  StatsData,
+  DnrDiagnostics,
+  ActivitySnapshot,
+  RulesetDetail,
+} from './types';
 
-const visibleLists=computed(()=>listData.value.filter((r:any)=>(pane.value!=='privacy'||r.id==='easyprivacy'||['privacy','annoyances'].includes(category(r)))&&(group.value==='all'||category(r)===group.value)&&(!onlyEnabled.value||enabled.value.has(r.id))&&(r.name+' '+r.id).toLowerCase().includes(query.value.toLowerCase())).sort((a:any,b:any)=>Number(enabled.value.has(b.id))-Number(enabled.value.has(a.id))||a.name.localeCompare(b.name)));
-const exceptions=computed(()=>(modes.value.none||[]).filter((h:string)=>h!=='all-urls').sort());
-const visibleHosts=computed(()=>exceptions.value.filter((h:string)=>h.includes(query.value.toLowerCase())));
-const dayKey=(d:Date)=>d.toLocaleDateString('en-CA');
-const chart=computed(()=>{const arr=[];for(let i=period.value-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);arr.push({day:d.toLocaleDateString(language.value==='vi'?'vi-VN':'en-US',{weekday:'short',day:'numeric'}),value:stats.value.days?.[dayKey(d)]||0});}return arr;});
-const maxBar=computed(()=>Math.max(1,...chart.value.map(d=>d.value)));
-const observed=computed(()=>chart.value.reduce((n,d)=>n+d.value,0));
-const recent=computed(()=>(activity.value?.matches||[]).filter((r:any)=>JSON.stringify(r.rule).toLowerCase().includes(activityQuery.value.toLowerCase())).sort((a:any,b:any)=>b.timeStamp-a.timeStamp).slice(0,250));
-const dirty=computed(()=>rules.value!==ruleOriginal.value);
-function notify(s:string,error=false){toast.value=s;bad.value=error;clearTimeout(timer);timer=setTimeout(()=>toast.value='',4200);}
-const saved=()=>notify(tr('Đã lưu thay đổi','Changes saved'));
-async function refresh(){const generation=++refreshGeneration;try{const d=await readCenter();if(generation!==refreshGeneration)return;config.value=d.config;modes.value=d.modes;stats.value=d.stats;imported.value=d.imported;if(restricted.value&&pane.value!=='about')pane.value='about';const a=await web.storage.session.get('origin.activity');if(generation===refreshGeneration)activity.value=a['origin.activity'];}catch(e:any){if(generation===refreshGeneration)notify(e.message,true);}finally{if(generation===refreshGeneration)loading.value=false;}}
-async function loadRules(){const [text,p]=await Promise.all([api('getSandboxFilters'),api('getAllCustomFilters')]);rules.value=ruleOriginal.value=typeof text==='string'?text:'';picked.value=Array.isArray(p)?p:[];}
-async function go(p:string){if(restricted.value&&p!=='about')return;if(dirty.value&&pane.value==='rules'&&p!=='rules'&&!confirm(tr('Bỏ thay đổi chưa lưu?','Discard unsaved changes?')))return;pane.value=p;query.value='';group.value='all';onlyEnabled.value=false;mobile.value=false;history.replaceState(null,'','?pane='+p);if(p==='rules')await loadRules();}
-async function run(fn:()=>Promise<any>,message=true){if(busy.value)return;busy.value=true;try{await fn();if(message)saved();}catch(e:any){notify(e.message||tr('Không thể áp dụng','Could not apply'),true);}finally{busy.value=false;await refresh();}}
-const globalToggle=()=>run(async()=>{const target=!protectedOn.value;const actual=await api('originGlobalToggle',{enabled:target});if((actual>0)!==target)throw Error(tr('Không thể thay đổi bảo vệ','Could not change protection'));});
-const levelChange=(n:number)=>run(()=>setDefault(n));
-const adminList=(id:string)=>(config.value?.adminRulesets||[]).some((a:string)=>[id,'+'+id,'-'+id].includes(a));
-function toggleList(r:any){return run(async()=>{const ids=new Set<string>(await api('getEnabledRulesets'));const target=!ids.has(r.id);target?ids.add(r.id):ids.delete(r.id);await api('applyRulesets',{enabledRulesets:[...ids]});const actual=await api<string[]>('getEnabledRulesets');if(actual.includes(r.id)!==target)throw Error(tr('Không thể áp dụng danh sách (có thể đã đạt giới hạn MV3)','Could not apply list (MV3 limit may be reached)'));});}
-function addList(){return run(async()=>{const u=new URL(importUrl.value.trim());if(u.protocol!=='https:'||u.username||u.password)throw Error(tr('Chỉ hỗ trợ URL HTTPS công khai','Public HTTPS URLs only'));await api('importFilterList',{url:u.href});if(!(await api<string[]>('getEnabledRulesets')).includes(u.href))throw Error(tr('Không thể nhập danh sách','Could not import list'));importUrl.value='';});}
-function removeList(id:string){if(!confirm(tr('Xóa bộ lọc này?','Remove this filter?')))return;return run(async()=>{const ids=(await api<string[]>('getEnabledRulesets')).filter(x=>x!==id);await api('applyRulesets',{enabledRulesets:ids,toRemove:[id]});});}
-const updateLists=()=>run(async()=>{const r=await api('originRefreshLists');if(!r||!Number.isInteger(r.count))throw Error(tr('Cập nhật thất bại','Update failed'));notify(tr('Đã kiểm tra bộ lọc tùy chỉnh; bộ lọc tích hợp cập nhật theo bản phát hành.','Custom lists checked; built-in lists update with releases.'));},false);
-function addHost(){return run(async()=>{const h=hostname(host.value.trim());if(editHost.value&&editHost.value!==h){if(!await api('originException',{hostname:h}))throw Error(tr('Không thể thêm ngoại lệ','Could not add exception'));if(!await api('originException',{hostname:editHost.value,remove:true}))throw Error(tr('Không thể xóa ngoại lệ cũ','Could not remove old exception'));}else if(!await api('originException',{hostname:h}))throw Error(tr('Không thể thêm ngoại lệ','Could not add exception'));host.value='';editHost.value='';});}
-const removeHost=(h:string)=>run(async()=>{if(!await api('originException',{hostname:h,remove:true}))throw Error(tr('Không thể xóa ngoại lệ','Could not remove exception'));});
-function edit(h:string){editHost.value=h;host.value=h;}
-const saveRules=()=>run(async()=>{if(rules.value.length>2_000_000)throw Error(tr('Tệp quy tắc quá lớn','Rules file is too large'));await api('setSandboxFilters',{text:rules.value});const actual=await api('getSandboxFilters');if((typeof actual==='string'?actual:'').trim()!==rules.value.trim())throw Error(tr('Không thể lưu quy tắc','Could not save rules'));ruleOriginal.value=rules.value;});
-function removePicked(h:string,s:string){return run(async()=>{await api('removeCustomFilters',{hostname:h,selectors:[s]});await loadRules();});}
-async function importRules(e:Event){const f=(e.target as HTMLInputElement).files?.[0];if(!f)return;if(f.size>2_000_000){notify(tr('Tệp quá lớn','File too large'),true);return;}rules.value+=(rules.value?'\n':'')+await f.text();(e.target as HTMLInputElement).value='';}
-const settingRows=computed(()=>[{key:'autoReload',msg:'setAutoReload',name:tr('Tự tải lại trang','Automatically reload pages'),desc:tr('Sau khi thay đổi bảo vệ của website.','After changing site protection.')},{key:'showBlockedCount',msg:'setShowBlockedCount',name:tr('Hiện số lượt lọc trên biểu tượng','Show filter count on icon'),desc:tr('Phụ thuộc khả năng trình duyệt.','Subject to browser support.')},{key:'strictBlockMode',msg:'setStrictBlockMode',name:tr('Chặn trang nguy hiểm','Strict blocking'),desc:tr('Chặn điều hướng khớp bộ lọc bảo mật.','Block navigation matching security filters.')},{key:'popupBlockMode',msg:'setPopupBlockMode',name:tr('Chặn cửa sổ bật lên','Block pop-ups'),desc:tr('Ngăn cửa sổ không mong muốn.','Prevent unwanted pop-up windows.')}]);
-const changeSetting=(s:any)=>run(async()=>{const target=!config.value[s.key];await api(s.msg,{state:target});const actual=await api('getCurrentConfig');if(actual?.[s.key]!==target)throw Error(tr('Không thể thay đổi cài đặt','Could not change setting'));});
-const toggleStats=()=>run(()=>api('originSetStats',{enabled:!stats.value.enabled}));
-const clearStats=()=>{if(confirm(tr('Xóa toàn bộ thống kê cục bộ?','Clear all local statistics?')))return run(()=>api('originClearStats'));};
-async function exportSettings(){await run(async()=>{const path=web.runtime.getURL('js/backup-restore.js');const mod=await import(/* @vite-ignore */ path);const data=await mod.backupToObject(config.value);download('origin-ublock-settings.json',JSON.stringify(data,null,2),'application/json');},false);}
-async function restoreSettings(e:Event){const input=e.target as HTMLInputElement;const f=input.files?.[0];if(!f)return;try{if(f.size>4_000_000)throw Error(tr('Tệp quá lớn','File too large'));const d=JSON.parse(await f.text());if(!d||typeof d!=='object'||Array.isArray(d)||!d.filteringModes)throw Error(tr('Tệp sao lưu không hợp lệ','Invalid backup'));if(!confirm(tr('Khôi phục sẽ thay thế cấu hình đang dùng. Tiếp tục?','Restore replaces current configuration. Continue?')))return;await run(async()=>{const path=web.runtime.getURL('js/backup-restore.js');const mod=await import(/* @vite-ignore */ path);await mod.restoreFromObject(d);});}catch(e:any){notify(e.message,true);}finally{input.value='';}}
-function reset(){if(!confirm(tr('Đưa cài đặt lọc về mặc định?','Reset filtering settings to defaults?')))return;return run(async()=>{const path=web.runtime.getURL('js/backup-restore.js');const mod=await import(/* @vite-ignore */ path);await mod.restoreFromObject({});});}
-async function prefs(){await savePrefs();saved();}
-onMounted(async()=>{await loadPrefs();await refresh();if(pane.value==='rules')await loadRules();channel=new BroadcastChannel('uBOL');channel.onmessage=()=>{if(!busy.value)void refresh();};window.addEventListener('focus',refresh);});
-onUnmounted(()=>{channel?.close();window.removeEventListener('focus',refresh);clearTimeout(timer);});
+const pages = [
+  'overview',
+  'filters',
+  'privacy',
+  'exceptions',
+  'rules',
+  'activity',
+  'settings',
+  'about',
+  'welcome',
+];
+const initial = new URL(location.href).searchParams.get('pane') || 'overview';
+const pane = ref(
+  pages.includes(initial) ? initial : initial === 'rulesets' ? 'filters' : 'overview'
+);
+
+const config = ref<any>(null);
+const modes = ref<any>({ none: [] });
+const stats = ref<StatsData>({ enabled: false, days: {}, total: 0 });
+const imported = ref<any[]>([]);
+const stealth = ref<StealthConfig>({
+  blockPing: false,
+  stripReferrer: false,
+  stripClientData: false,
+  stripUtmCustom: false,
+});
+const timers = ref<TimerState>({ global: null, sites: {} });
+const diagnostics = ref<DnrDiagnostics | null>(null);
+const activity = ref<ActivitySnapshot | null>(null);
+
+const loading = ref(true);
+const busy = ref(false);
+const toast = ref('');
+const bad = ref(false);
+const mobile = ref(false);
+const period = ref(7);
+
+const rules = ref('');
+const ruleOriginal = ref('');
+const picked = ref<Array<[string, string[]]>>([]);
+const nowMs = ref(Date.now());
+
+let toastTimer: any;
+let tickTimer: any;
+let channel: BroadcastChannel | undefined;
+let refreshGeneration = 0;
+
+const nav = computed(() => [
+  { id: 'overview', section: 'monitor', label: tr('Tổng quan', 'Overview'), icon: LayoutDashboard },
+  { id: 'filters', section: 'blocking', label: tr('Bộ lọc quảng cáo', 'Ad filters'), icon: ListFilter },
+  { id: 'privacy', section: 'blocking', label: tr('Bảo vệ riêng tư', 'Privacy & Stealth'), icon: Fingerprint },
+  { id: 'exceptions', section: 'rules', label: tr('Trang web cho phép', 'Allowlist'), icon: Globe },
+  { id: 'rules', section: 'rules', label: tr('Quy tắc & Phần tử', 'My rules'), icon: Code2 },
+  { id: 'activity', section: 'monitor', label: tr('Nhật ký lọc', 'Filtering log'), icon: Activity },
+  { id: 'settings', section: 'system', label: tr('Cài đặt', 'Settings'), icon: Settings },
+  { id: 'about', section: 'system', label: tr('Giới thiệu', 'About'), icon: Info },
+]);
+
+const descriptions = computed<Record<string, string>>(() => ({
+  overview: tr(
+    'Giám sát bảo vệ, lớp lá chắn hội tụ và cấu hình nhanh.',
+    'Monitor protection, unified shields and quick presets.'
+  ),
+  filters: tr(
+    'Quản lý danh sách lọc quảng cáo, khu vực và bộ lọc tùy chỉnh.',
+    'Manage ad blocking, regional and custom filter lists.'
+  ),
+  privacy: tr(
+    'Chế độ tàng hình AdGuard Stealth MV3, chống theo dõi và chặn phiền nhiễu.',
+    'AdGuard MV3 Stealth mode, anti-tracking and annoyance shields.'
+  ),
+  exceptions: tr(
+    'Quản lý trang web được cho phép (nhập đơn lẻ hoặc hàng loạt).',
+    'Manage allowlisted websites individually or in bulk.'
+  ),
+  rules: tr(
+    'Trình tạo quy tắc nhanh, quy tắc tùy chỉnh và phần tử đã ẩn.',
+    'Quick rule builder, custom filter rules and hidden elements.'
+  ),
+  activity: tr(
+    'Nhật ký quy tắc khớp theo tab và thanh tra chi tiết điều kiện DNR.',
+    'Per-tab matched rule log and live DNR rule inspector.'
+  ),
+  settings: tr(
+    'Mức bảo vệ, hành vi, giao diện, sao lưu và chẩn đoán MV3.',
+    'Protection level, behavior, appearance, backup and MV3 diagnostics.'
+  ),
+  about: tr(
+    'Thông tin phiên bản, mã nguồn GPL-3.0 và cam kết không telemetry.',
+    'Version, GPL-3.0 source code and zero-telemetry commitment.'
+  ),
+  welcome: tr(
+    'Thiết lập nhanh Origin uBlock trong vài bước.',
+    'Set up Origin uBlock in a few quick steps.'
+  ),
+}));
+
+const title = computed(
+  () => nav.value.find((n) => n.id === pane.value)?.label || tr('Hướng dẫn bắt đầu', 'Getting started')
+);
+
+const enabledSet = computed(() => new Set<string>(config.value?.enabledRulesets || []));
+const protectedOn = computed(() => Number(config.value?.defaultFilteringMode) > 0);
+const restricted = computed(() => config.value?.disabledFeatures?.includes('dashboard') === true);
+const modeRestricted = computed(
+  () => restricted.value || config.value?.disabledFeatures?.includes('filteringMode') === true
+);
+const listData = computed<RulesetDetail[]>(() => config.value?.rulesetDetails || []);
+const ruleCount = computed(() =>
+  listData.value
+    .filter((r) => enabledSet.value.has(r.id))
+    .reduce((n, r) => n + (r.rules?.plain || 0) + (r.rules?.regex || 0), 0)
+);
+const exceptions = computed(() =>
+  (modes.value.none || []).filter((h: string) => h !== 'all-urls').sort()
+);
+const dirty = computed(() => rules.value !== ruleOriginal.value);
+
+function navBadge(id: string): string | null {
+  if (!config.value) return null;
+  if (id === 'filters') return String(enabledSet.value.size);
+  if (id === 'exceptions' && exceptions.value.length > 0) return String(exceptions.value.length);
+  return null;
+}
+
+function notify(s: string, error = false) {
+  toast.value = s;
+  bad.value = error;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.value = '';
+  }, 4200);
+}
+
+const saved = () => notify(tr('Đã lưu thay đổi', 'Changes saved'));
+
+async function refresh() {
+  const generation = ++refreshGeneration;
+  try {
+    const d = await readCenter();
+    if (generation !== refreshGeneration) return;
+    config.value = d.config;
+    modes.value = d.modes;
+    stats.value = d.stats;
+    imported.value = d.imported;
+    stealth.value = d.stealth;
+    timers.value = d.timers;
+    diagnostics.value = d.diagnostics;
+    if (restricted.value && pane.value !== 'about') pane.value = 'about';
+    const a = await web.storage.session.get('origin.activity');
+    if (generation === refreshGeneration) activity.value = a['origin.activity'] || null;
+  } catch (e: any) {
+    if (generation === refreshGeneration) notify(e.message || String(e), true);
+  } finally {
+    if (generation === refreshGeneration) loading.value = false;
+  }
+}
+
+async function loadRules() {
+  const [text, p] = await Promise.all([
+    api('getSandboxFilters'),
+    api('getAllCustomFilters'),
+  ]);
+  rules.value = ruleOriginal.value = typeof text === 'string' ? text : '';
+  picked.value = Array.isArray(p) ? p : [];
+}
+
+async function go(p: string) {
+  if (restricted.value && p !== 'about') return;
+  if (
+    dirty.value &&
+    pane.value === 'rules' &&
+    p !== 'rules' &&
+    !confirm(tr('Bỏ thay đổi quy tắc chưa lưu?', 'Discard unsaved rule changes?'))
+  ) {
+    return;
+  }
+  pane.value = p;
+  mobile.value = false;
+  history.replaceState(null, '', '?pane=' + p);
+  if (p === 'rules') await loadRules();
+}
+
+async function run(fn: () => Promise<any>, message = true) {
+  if (busy.value) return;
+  busy.value = true;
+  try {
+    await fn();
+    if (message) saved();
+  } catch (e: any) {
+    notify(e.message || tr('Không thể áp dụng', 'Could not apply'), true);
+  } finally {
+    busy.value = false;
+    await refresh();
+  }
+}
+
+const globalToggle = () =>
+  run(async () => {
+    const target = !protectedOn.value;
+    const actual = await api('originGlobalToggle', { enabled: target });
+    if ((actual > 0) !== target) {
+      throw Error(tr('Không thể thay đổi bảo vệ toàn cục', 'Could not change global protection'));
+    }
+  });
+
+const timedPauseGlobal = (minutes: number) =>
+  run(async () => {
+    await api('originTimedPause', { scope: 'global', minutes });
+    notify(tr(`Đã tạm dừng toàn cục ${minutes} phút`, `Paused globally for ${minutes} minutes`));
+  }, false);
+
+const cancelGlobalTimer = () =>
+  run(async () => {
+    await api('originCancelTimer', { scope: 'global' });
+    notify(tr('Đã bật lại bảo vệ toàn cục', 'Global protection resumed'));
+  }, false);
+
+const levelChange = (n: number) => run(() => setDefault(n));
+
+const applyPreset = (preset: 'balanced' | 'adguard' | 'max') =>
+  run(async () => {
+    await api('originApplyPreset', { preset });
+    notify(tr('Đã áp dụng hồ sơ bảo vệ', 'Protection preset applied'));
+  }, false);
+
+function toggleList(r: RulesetDetail) {
+  return run(async () => {
+    const ids = new Set<string>(await api('getEnabledRulesets'));
+    const target = !ids.has(r.id);
+    target ? ids.add(r.id) : ids.delete(r.id);
+    await api('applyRulesets', { enabledRulesets: [...ids] });
+    const actual = await api<string[]>('getEnabledRulesets');
+    if (actual.includes(r.id) !== target) {
+      throw Error(
+        tr(
+          'Không thể áp dụng danh sách (có thể đã đạt giới hạn MV3)',
+          'Could not apply list (MV3 limit may be reached)'
+        )
+      );
+    }
+  });
+}
+
+function addList(urlInput: string) {
+  return run(async () => {
+    const u = new URL(urlInput);
+    if (u.protocol !== 'https:' || u.username || u.password) {
+      throw Error(tr('Chỉ hỗ trợ URL HTTPS công khai', 'Public HTTPS URLs only'));
+    }
+    await api('importFilterList', { url: u.href });
+    if (!(await api<string[]>('getEnabledRulesets')).includes(u.href)) {
+      throw Error(tr('Không thể nhập danh sách', 'Could not import list'));
+    }
+  });
+}
+
+function removeList(id: string) {
+  if (!confirm(tr('Xóa bộ lọc tùy chỉnh này?', 'Remove this custom filter?'))) return;
+  return run(async () => {
+    const ids = (await api<string[]>('getEnabledRulesets')).filter((x) => x !== id);
+    await api('applyRulesets', { enabledRulesets: ids, toRemove: [id] });
+  });
+}
+
+const updateLists = () =>
+  run(async () => {
+    const r = await api('originRefreshLists');
+    if (!r || !Number.isInteger(r.count)) throw Error(tr('Cập nhật thất bại', 'Update failed'));
+    notify(
+      tr(
+        'Đã kiểm tra bộ lọc tùy chỉnh; bộ lọc tích hợp cập nhật theo bản phát hành.',
+        'Custom lists checked; built-in lists update with releases.'
+      )
+    );
+  }, false);
+
+const toggleStealth = (key: keyof StealthConfig) =>
+  run(async () => {
+    const next = !stealth.value[key];
+    await api('originSetStealth', { stealth: { [key]: next } });
+  });
+
+function addHost(rawHost: string, editOld = '') {
+  return run(async () => {
+    const h = hostname(rawHost);
+    if (editOld && editOld !== h) {
+      if (!(await api('originException', { hostname: h }))) {
+        throw Error(tr('Không thể thêm ngoại lệ', 'Could not add exception'));
+      }
+      if (!(await api('originException', { hostname: editOld, remove: true }))) {
+        throw Error(tr('Không thể xóa ngoại lệ cũ', 'Could not remove old exception'));
+      }
+    } else if (!(await api('originException', { hostname: h }))) {
+      throw Error(tr('Không thể thêm ngoại lệ', 'Could not add exception'));
+    }
+  });
+}
+
+const removeHost = (h: string) =>
+  run(async () => {
+    if (!(await api('originException', { hostname: h, remove: true }))) {
+      throw Error(tr('Không thể xóa ngoại lệ', 'Could not remove exception'));
+    }
+  });
+
+const bulkAddExceptions = (hosts: string[]) =>
+  run(async () => {
+    const res = await api('originBulkExceptions', { hostnames: hosts, action: 'add' });
+    notify(tr(`Đã thêm ${res?.changed || 0} tên miền vào ngoại lệ`, `Added ${res?.changed || 0} allowlisted domains`));
+  }, false);
+
+const clearAllExceptions = (hosts: string[]) => {
+  if (!confirm(tr('Xóa toàn bộ trang web ngoại lệ?', 'Clear all allowlisted websites?'))) return;
+  return run(async () => {
+    await api('originBulkExceptions', { hostnames: hosts, action: 'remove' });
+  });
+};
+
+const saveRules = () =>
+  run(async () => {
+    if (rules.value.length > 2_000_000) throw Error(tr('Tệp quy tắc quá lớn', 'Rules file is too large'));
+    await api('setSandboxFilters', { text: rules.value });
+    const actual = await api('getSandboxFilters');
+    if ((typeof actual === 'string' ? actual : '').trim() !== rules.value.trim()) {
+      throw Error(tr('Không thể lưu quy tắc', 'Could not save rules'));
+    }
+    ruleOriginal.value = rules.value;
+  });
+
+const removePicked = (h: string, s: string) =>
+  run(async () => {
+    await api('removeCustomFilters', { hostname: h, selectors: [s] });
+    await loadRules();
+  });
+
+const removeAllPicked = (h: string) => {
+  if (!confirm(tr(`Xóa toàn bộ phần tử đã ẩn của ${h}?`, `Remove all hidden elements for ${h}?`))) return;
+  return run(async () => {
+    await api('removeAllCustomFilters', { hostname: h });
+    await loadRules();
+  });
+};
+
+const changeSetting = (msg: string, current: boolean) =>
+  run(async () => {
+    await api(msg, { state: !current });
+  });
+
+const toggleDeveloper = () =>
+  run(async () => {
+    await api('setDeveloperMode', { state: !config.value.developerMode });
+  });
+
+const toggleStats = () => run(() => api('originSetStats', { enabled: !stats.value.enabled }));
+
+const clearStats = () => {
+  if (confirm(tr('Xóa toàn bộ thống kê cục bộ?', 'Clear all local statistics?'))) {
+    return run(() => api('originClearStats'));
+  }
+};
+
+async function exportSettings() {
+  await run(async () => {
+    const path = web.runtime.getURL('js/backup-restore.js');
+    const mod = await import(/* @vite-ignore */ path);
+    const data = await mod.backupToObject(config.value);
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    );
+    a.href = url;
+    a.download = 'origin-ublock-settings.json';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, false);
+}
+
+async function restoreSettings(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const f = input.files?.[0];
+  if (!f) return;
+  try {
+    if (f.size > 4_000_000) throw Error(tr('Tệp quá lớn', 'File too large'));
+    const d = JSON.parse(await f.text());
+    if (!d || typeof d !== 'object' || Array.isArray(d) || !d.filteringModes) {
+      throw Error(tr('Tệp sao lưu không hợp lệ', 'Invalid backup file'));
+    }
+    if (!confirm(tr('Khôi phục sẽ thay thế cấu hình đang dùng. Tiếp tục?', 'Restore replaces current configuration. Continue?'))) {
+      return;
+    }
+    await run(async () => {
+      const path = web.runtime.getURL('js/backup-restore.js');
+      const mod = await import(/* @vite-ignore */ path);
+      await mod.restoreFromObject(d);
+    });
+  } catch (err: any) {
+    notify(err.message || String(err), true);
+  } finally {
+    input.value = '';
+  }
+}
+
+function reset() {
+  if (!confirm(tr('Đưa toàn bộ cài đặt lọc về mặc định?', 'Reset all filtering settings to defaults?'))) return;
+  return run(async () => {
+    const path = web.runtime.getURL('js/backup-restore.js');
+    const mod = await import(/* @vite-ignore */ path);
+    await mod.restoreFromObject({});
+  });
+}
+
+async function prefs() {
+  await savePrefs();
+  saved();
+}
+
+onMounted(async () => {
+  await loadPrefs();
+  await refresh();
+  if (pane.value === 'rules') await loadRules();
+  channel = new BroadcastChannel('uBOL');
+  channel.onmessage = () => {
+    if (!busy.value) void refresh();
+  };
+  window.addEventListener('focus', refresh);
+  tickTimer = setInterval(() => {
+    nowMs.value = Date.now();
+  }, 1000);
+});
+
+onUnmounted(() => {
+  channel?.close();
+  window.removeEventListener('focus', refresh);
+  clearTimeout(toastTimer);
+  clearInterval(tickTimer);
+});
 </script>
+
 <template>
-<div class="dashboard-shell">
- <aside class="sidebar" :class="{mobile}">
-  <div class="brand"><span class="brand-mark"><ShieldCheck :size="26"/></span><div><b>Origin uBlock</b><small>PROTECTION CENTER</small></div></div>
-  <nav class="side-nav"><button v-for="n in nav" :key="n.id" :class="{selected:pane===n.id}" :disabled="restricted&&n.id!=='about'" @click="go(n.id)"><component :is="n.icon" :size="19" :stroke-width="1.8"/><span>{{n.label}}</span><ChevronRight v-if="pane===n.id" :size="14" class="nav-arrow"/></button></nav>
-  <div class="side-footer"><button @click="go('welcome')"><BookOpen :size="16"/>{{tr('Hướng dẫn bắt đầu','Getting started')}}</button><small>Origin uBlock · v{{version}}</small></div>
- </aside>
- <main class="dashboard-main">
-  <header class="topbar"><div class="crumb"><button class="icon-button mobile-toggle" @click="mobile=!mobile"><Menu :size="22"/></button><ShieldCheck :size="17"/><span>Origin uBlock</span><ChevronRight :size="13"/><b>{{title}}</b></div><button class="icon-button" :title="tr('Cài đặt','Settings')" @click="go('settings')"><Settings :size="20"/></button></header>
-  <div class="content">
-   <div class="page-header"><div><h1>{{title}}</h1><p>{{descriptions[pane]}}</p></div><button class="btn secondary" @click="refresh" :disabled="busy||loading"><RefreshCw :size="16"/>{{tr('Làm mới','Refresh')}}</button></div>
-   <div v-if="loading" class="panel">{{tr('Đang kết nối engine…','Connecting to engine…')}}</div>
-   <div v-else-if="!config" class="panel">{{tr('Không thể tải cấu hình. Hãy làm mới.','Unable to load configuration. Refresh to retry.')}}</div>
-   <template v-else>
-    <section v-if="pane==='overview'" class="stack" data-page="overview">
-     <div class="protection-banner" :class="{off:!protectedOn}"><span class="banner-icon"><ShieldCheck :size="32"/></span><div><h2>{{protectedOn?tr('Hệ thống đang hoạt động','Protection is active'):tr('Bảo vệ đang tạm dừng','Protection is paused')}}</h2><p>{{tr('Chặn quảng cáo và bảo vệ quyền riêng tư','Ad blocking and privacy protection')}} · {{modeName(config.defaultFilteringMode)}}</p></div><button class="switch banner-switch" role="switch" :aria-checked="protectedOn" :aria-label="tr('Bảo vệ toàn cục','Global protection')" :disabled="busy||modeRestricted" @click="globalToggle"><span/></button></div>
-     <div class="stat-grid"><article class="stat-card"><div><span>{{tr('Lượt lọc quan sát','Observed filter actions')}}</span><Activity :size="20"/></div><strong>{{stats.enabled?num(observed):'—'}}</strong><small>{{tr('Trong','Over')}} {{period}} {{tr('ngày','days')}}</small></article><article class="stat-card"><div><span>{{tr('Quy tắc mạng hoạt động','Active network rules')}}</span><Shield :size="20"/></div><strong>{{num(ruleCount)}}</strong><small>{{tr('Quy tắc đã chuyển đổi','Compiled network rules')}}</small></article><article class="stat-card"><div><span>{{tr('Bộ lọc hoạt động','Active filter lists')}}</span><ListFilter :size="20"/></div><strong>{{enabled.size}}</strong><small>{{exceptions.length}} {{tr('website ngoại lệ','allowlisted websites')}}</small></article></div>
-     <article class="panel chart-panel"><div class="panel-header"><div><h2>{{tr('Hoạt động lọc','Filtering activity')}}</h2><p>{{tr('Số liệu quan sát từ biểu tượng trình duyệt, không phải tổng đầy đủ.','Observed browser badge counts, not a complete total.')}}</p></div><select v-model.number="period" class="field compact"><option :value="7">7 {{tr('ngày','days')}}</option><option :value="30">30 {{tr('ngày','days')}}</option></select></div><div class="chart" :class="{dense:period===30}"><div v-for="d in chart" :key="d.day" class="chart-col"><span v-if="period===7">{{stats.enabled?num(d.value):'—'}}</span><div class="bar" :title="d.day+': '+d.value" :style="{height:(d.value/maxBar*138)+'px'}"/><small>{{period===7?d.day:d.day.split(' ').at(-1)}}</small></div></div><div class="panel-footer"><span>{{stats.enabled?tr('Dữ liệu chỉ lưu trên thiết bị.','Data stays on this device.'):tr('Thống kê đang tắt.','Statistics are disabled.')}}</span><button class="btn secondary" :disabled="busy" @click="toggleStats">{{stats.enabled?tr('Tắt thống kê','Disable statistics'):tr('Bật thống kê','Enable statistics')}}</button></div></article>
-     <div class="quick-grid"><button class="panel quick-card" @click="go('filters')"><ListFilter/><div><b>{{tr('Quản lý bộ lọc','Manage filters')}}</b><small>{{tr('Tùy chỉnh các danh sách lọc','Customize your filter lists')}}</small></div><ChevronRight/></button><button class="panel quick-card" @click="go('privacy')"><Fingerprint/><div><b>{{tr('Bảo vệ riêng tư','Privacy protection')}}</b><small>{{tr('Kiểm soát theo dõi','Control tracking')}}</small></div><ChevronRight/></button></div>
-    </section>
-    <section v-else-if="pane==='filters'||pane==='privacy'" class="stack" :data-page="pane">
-     <div class="panel"><div class="panel-header"><div><h2>{{pane==='privacy'?tr('Danh sách bảo vệ','Protection lists'):tr('Danh sách bộ lọc','Filter lists')}}</h2><p>{{enabled.size}} {{tr('đang bật','enabled')}} · {{num(ruleCount)}} {{tr('quy tắc mạng','network rules')}}</p></div><button class="btn secondary" :disabled="busy" @click="updateLists"><RefreshCw :size="16"/>{{tr('Cập nhật tùy chỉnh','Update custom')}}</button></div>
-      <div class="filter-toolbar"><label class="search-field"><Search :size="18"/><input v-model="query" :placeholder="tr('Tìm bộ lọc…','Search filters…')"/></label><label class="check"><input v-model="onlyEnabled" type="checkbox"/>{{tr('Chỉ đang bật','Enabled only')}}</label></div>
-      <div v-if="pane==='filters'" class="chips"><button v-for="g in groups" :key="g.id" :class="{selected:group===g.id}" @click="group=g.id">{{g.name}}</button></div>
-      <div v-if="!visibleLists.length" class="empty">{{tr('Không tìm thấy bộ lọc','No filters found')}}</div>
-      <div v-for="r in visibleLists" :key="r.id" class="list-row"><span class="list-icon"><img v-if="listFlag(r)" class="filter-country-flag" :src="flagURL(r)" :alt="listFlag(r).toUpperCase()"/><component v-else :is="pane==='privacy'?Fingerprint:ListFilter" :size="18"/></span><div class="list-details"><b>{{filterName(r.name)}}</b><small>{{num((r.rules?.plain||0)+(r.rules?.regex||0))}} {{tr('quy tắc mạng','network rules')}} · {{groups.find(g=>g.id===category(r))?.name||category(r)}}</small></div><a v-if="r.homeURL&&/^https:\/\//.test(r.homeURL)" class="icon-button" :href="r.homeURL" target="_blank" rel="noopener noreferrer" title="Source"><ExternalLink :size="15"/></a><button v-if="category(r)==='imported'" class="icon-button" :disabled="busy" @click="removeList(r.id)" title="Remove"><Trash2 :size="16"/></button><button class="switch" role="switch" :aria-checked="enabled.has(r.id)" :aria-label="r.name" :disabled="busy||adminList(r.id)" @click="toggleList(r)"><span/></button></div>
-     </div>
-     <form v-if="pane==='filters'" class="panel" @submit.prevent="addList"><h2>{{tr('Thêm bộ lọc tùy chỉnh','Add custom filter')}}</h2><p class="subtext">{{tr('Nhập đường dẫn HTTPS của bộ lọc mà bạn có quyền sử dụng.','Enter an HTTPS filter URL you are authorized to use.')}}</p><div class="form-row"><input v-model="importUrl" type="url" class="field" required placeholder="https://example.com/filter.txt"/><button class="btn primary" :disabled="busy"><Plus :size="16"/>{{tr('Thêm','Add')}}</button></div></form>
-    </section>
-    <section v-else-if="pane==='exceptions'" class="stack" data-page="exceptions"><article class="panel"><div class="panel-header"><div><h2>{{tr('Website ngoại lệ','Allowlisted websites')}}</h2><p>{{exceptions.length}} {{tr('tên miền','domains')}}</p></div></div><div v-if="!protectedOn" class="notice">{{tr('Bật lại bảo vệ toàn cục trước khi sửa ngoại lệ.','Resume global protection before changing exceptions.')}}</div><form class="form-row" @submit.prevent="addHost"><input v-model="host" class="field" required placeholder="example.com" :disabled="!protectedOn||modeRestricted"/><button class="btn primary" :disabled="busy||!protectedOn||modeRestricted"><Plus :size="17"/>{{editHost?tr('Lưu','Save'):tr('Thêm','Add')}}</button><button v-if="editHost" type="button" class="btn secondary" @click="editHost='';host=''">{{tr('Hủy','Cancel')}}</button></form><label class="search-field"><Search :size="18"/><input v-model="query" :placeholder="tr('Tìm tên miền…','Search domains…')"/></label><div v-if="!visibleHosts.length" class="empty"><Globe :size="28"/>{{tr('Chưa có website ngoại lệ','No allowlisted websites')}}</div><div v-for="h in visibleHosts" :key="h" class="list-row"><span class="list-icon"><Globe :size="18"/></span><b class="list-details">{{h}}</b><button class="btn secondary compact" :disabled="busy||!protectedOn||modeRestricted" @click="edit(h)">{{tr('Sửa','Edit')}}</button><button class="icon-button" :disabled="busy||!protectedOn||modeRestricted" @click="removeHost(h)"><Trash2 :size="18"/></button></div></article></section>
-    <section v-else-if="pane==='rules'" class="stack" data-page="rules"><article class="panel"><div class="panel-header"><div><h2>{{tr('Quy tắc tùy chỉnh','Custom rules')}}</h2><p>{{tr('Một quy tắc trên mỗi dòng. Cú pháp hỗ trợ phụ thuộc MV3.','One rule per line. Syntax support depends on MV3.')}}</p></div><span class="small">{{rules.split('\n').filter(Boolean).length}} {{tr('dòng','lines')}}</span></div><textarea v-model="rules" class="editor" spellcheck="false" placeholder="||example.com/ads/\nexample.com##.advertisement"></textarea><div class="form-row wrap"><button class="btn primary" :disabled="busy||!dirty" @click="saveRules">{{tr('Lưu quy tắc','Save rules')}}</button><button class="btn secondary" :disabled="busy||!dirty" @click="rules=ruleOriginal">{{tr('Hoàn tác','Revert')}}</button><button class="btn secondary" @click="ruleFile?.click()"><Upload :size="16"/>{{tr('Nhập','Import')}}</button><button class="btn secondary" @click="download('origin-rules.txt',rules)"><Download :size="16"/>{{tr('Xuất','Export')}}</button><input ref="ruleFile" type="file" accept=".txt" hidden @change="importRules"/></div></article><article class="panel"><h2>{{tr('Phần tử đã ẩn','Hidden elements')}}</h2><div v-if="!picked.length" class="empty">{{tr('Chưa có phần tử được lưu','No saved elements')}}</div><div v-for="entry in picked" :key="entry[0]" class="picked"><b>{{entry[0]}}</b><div v-for="sel in entry[1]" :key="sel" class="list-row"><code class="list-details">{{sel}}</code><button class="icon-button" :disabled="busy" @click="removePicked(entry[0],sel)"><Trash2 :size="16"/></button></div></div></article></section>
-    <section v-else-if="pane==='activity'" class="stack" data-page="activity"><article class="panel"><div class="panel-header"><div><h2>{{activity?.hostname||tr('Chưa chọn tab','No tab selected')}}</h2><p>{{activity?.at?new Date(activity.at).toLocaleString():'—'}}</p></div><button class="btn secondary" @click="refresh"><RefreshCw :size="16"/>{{tr('Làm mới','Refresh')}}</button></div><div class="notice"><Info :size="17"/>{{tr('Chrome MV3 giới hạn truy cập nhật ký. Mở nhật ký từ popup của website để xem quy tắc khớp; không thu thập URL.','Chrome MV3 limits log access. Open the log from a website popup to inspect matched rules; URLs are not collected.')}}</div><label class="search-field"><Search :size="18"/><input v-model="activityQuery" placeholder="Rule ID / ruleset"/></label><div v-if="!activity||activity.unavailable" class="empty">{{tr('Không có quyền đọc quy tắc của tab này.','Matched-rule access unavailable for this tab.')}}</div><div v-else-if="!recent.length" class="empty">{{tr('Không có quy tắc khớp được cung cấp','No matched rules returned')}}</div><div v-else class="table-scroll"><table><thead><tr><th>{{tr('Thời gian','Time')}}</th><th>{{tr('Bộ lọc','Ruleset')}}</th><th>{{tr('Mã quy tắc','Rule ID')}}</th></tr></thead><tbody><tr v-for="(r,i) in recent" :key="i"><td>{{new Date(r.timeStamp).toLocaleTimeString()}}</td><td>{{r.rule?.rulesetId}}</td><td>{{r.rule?.ruleId}}</td></tr></tbody></table></div><button v-if="recent.length" class="btn secondary" @click="download('origin-matched-rules.json',JSON.stringify(recent,null,2),'application/json')"><Download :size="16"/>{{tr('Xuất nhật ký','Export log')}}</button></article></section>
-    <section v-else-if="pane==='settings'||pane==='welcome'" class="stack" :data-page="pane"><article class="panel"><h2>{{tr('Mức bảo vệ mặc định','Default protection level')}}</h2><p class="subtext">{{tr('Chọn mức lọc cho các website không có ngoại lệ.','Choose filtering for websites without exceptions.')}}</p><div class="mode-cards"><button v-for="m in protectionModes" :key="m.id" :class="{selected:config.defaultFilteringMode===m.id}" :disabled="busy||modeRestricted" @click="levelChange(m.id)"><Shield :size="23"/><b>{{m.name}}</b><small>{{m.desc}}</small><CheckCircle2 v-if="config.defaultFilteringMode===m.id" :size="17" class="mode-check"/></button></div></article><article v-if="pane==='welcome'" class="panel"><h2>{{tr('Bắt đầu sử dụng','Ready to browse')}}</h2><p class="subtext">{{tr('Ghim Origin uBlock lên thanh công cụ. Bộ lọc Việt Nam đã được tích hợp.','Pin Origin uBlock to your toolbar. Vietnamese filters are built in.')}}</p><button class="btn primary" @click="go('overview')">{{tr('Đến tổng quan','Open overview')}}<ArrowRight :size="17"/></button></article><template v-else><article class="panel"><h2>{{tr('Hành vi bảo vệ','Protection behavior')}}</h2><div v-for="s in settingRows" :key="s.key" class="list-row"><div class="list-details"><b>{{s.name}}</b><small>{{s.desc}}</small></div><button class="switch" role="switch" :aria-checked="Boolean(config[s.key])" :aria-label="s.name" :disabled="busy||(s.key==='showBlockedCount'&&!config.canShowBlockedCount)||(s.key==='strictBlockMode'&&!config.hasOmnipotence)" @click="changeSetting(s)"><span/></button></div></article><article class="panel"><h2>{{tr('Giao diện và ngôn ngữ','Appearance and language')}}</h2><div class="list-row"><div class="list-details"><b>{{tr('Chủ đề','Theme')}}</b><small>{{tr('Chọn giao diện yêu thích','Choose your appearance')}}</small></div><div class="theme-options"><button v-for="opt in [{id:'light',icon:Sun},{id:'dark',icon:Moon},{id:'system',icon:Monitor}]" :key="opt.id" :class="{selected:theme===opt.id}" :title="opt.id" @click="theme=opt.id as any;prefs()"><component :is="opt.icon" :size="18"/></button></div></div><div class="list-row"><b class="list-details">{{tr('Ngôn ngữ','Language')}}</b><select v-model="language" class="field compact" @change="prefs"><option value="vi">Tiếng Việt</option><option value="en">English</option></select></div></article><article class="panel"><h2>{{tr('Dữ liệu và sao lưu','Data and backup')}}</h2><div class="list-row"><div class="list-details"><b>{{tr('Thống kê cục bộ','Local statistics')}}</b><small>{{tr('Tùy chọn, không lưu URL, không gửi lên máy chủ.','Optional, no URLs stored or sent to servers.')}}</small></div><button class="switch" role="switch" :aria-checked="stats.enabled" :disabled="busy" @click="toggleStats"><span/></button></div><div class="form-row wrap"><button class="btn secondary" :disabled="busy" @click="exportSettings"><Download :size="16"/>{{tr('Sao lưu','Backup')}}</button><button class="btn secondary" :disabled="busy" @click="fileInput?.click()"><Upload :size="16"/>{{tr('Khôi phục','Restore')}}</button><button class="btn secondary" :disabled="busy" @click="clearStats">{{tr('Xóa thống kê','Clear statistics')}}</button><button class="btn danger" :disabled="busy" @click="reset">{{tr('Đặt lại bộ lọc','Reset filtering')}}</button><input ref="fileInput" type="file" accept=".json" hidden @change="restoreSettings"/></div></article></template></section>
-    <section v-else class="stack" data-page="about"><article class="panel about-panel"><span class="brand-mark large"><ShieldCheck :size="40"/></span><h2>Origin uBlock v{{version}}</h2><p>{{tr('Bản fork độc lập của uBlock Origin Lite. Không liên kết với dự án chính thức.','Independent unofficial fork of uBlock Origin Lite; not affiliated with the official project.')}}</p><p>GNU GPL-3.0 · Copyright Raymond Hill and contributors</p><div class="form-row wrap"><a class="btn secondary" href="https://github.com/lowji194/Origin-uBlock" target="_blank" rel="noopener noreferrer">{{tr('Mã nguồn','Source')}}<ExternalLink :size="15"/></a><a class="btn secondary" href="https://github.com/lowji194/Origin-uBlock/releases" target="_blank" rel="noopener noreferrer">{{tr('Phiên bản','Releases')}}<ExternalLink :size="15"/></a><a class="btn secondary" href="https://github.com/lowji194/Origin-uBlock/issues" target="_blank" rel="noopener noreferrer">{{tr('Báo lỗi','Issues')}}<ExternalLink :size="15"/></a></div></article><article class="panel"><h2>{{tr('Quyền riêng tư','Privacy')}}</h2><p class="subtext">{{tr('Không có telemetry mới. Thống kê tùy chọn lưu cục bộ; bộ lọc tùy chỉnh kết nối tới nguồn do bạn chọn. Giới hạn API MV3 có thể ảnh hưởng hiệu quả và số liệu.','No new telemetry. Optional statistics stay local; custom filters contact the sources you select. MV3 API limits can affect filtering and counts.')}}</p></article></section>
-   </template>
+  <div class="dashboard-shell">
+    <aside class="sidebar" :class="{ mobile }">
+      <div class="brand">
+        <BrandLogo :size="22" />
+        <div>
+          <b>Origin uBlock</b>
+          <small>PROTECTION CENTER</small>
+        </div>
+      </div>
+
+      <nav class="side-nav" :aria-label="tr('Điều hướng chính', 'Main navigation')">
+        <button
+          v-for="n in nav"
+          :key="n.id"
+          type="button"
+          :class="{ selected: pane === n.id }"
+          :disabled="restricted && n.id !== 'about'"
+          @click="go(n.id)"
+        >
+          <component :is="n.icon" :size="18" :stroke-width="1.9" />
+          <span>{{ n.label }}</span>
+          <span v-if="navBadge(n.id)" class="nav-badge">{{ navBadge(n.id) }}</span>
+          <ChevronRight v-else-if="pane === n.id" :size="14" class="nav-arrow" />
+        </button>
+      </nav>
+
+      <div class="side-footer">
+        <button type="button" @click="go('welcome')">
+          <BookOpen :size="15" />
+          <span>{{ tr('Hướng dẫn bắt đầu', 'Getting started') }}</span>
+        </button>
+        <small>Lowji Edition · v{{ version }}</small>
+      </div>
+    </aside>
+
+    <main class="dashboard-main">
+      <header class="topbar">
+        <div class="crumb">
+          <button
+            type="button"
+            class="icon-button mobile-toggle"
+            :aria-label="tr('Mở menu', 'Toggle menu')"
+            @click="mobile = !mobile"
+          >
+            <Menu :size="20" />
+          </button>
+          <ShieldCheck :size="16" style="color: var(--accent)" />
+          <span>Origin uBlock</span>
+          <ChevronRight :size="13" />
+          <b>{{ title }}</b>
+        </div>
+        <div class="topbar-right">
+          <StatusPill
+            v-if="config"
+            :tone="timers.global ? 'warning' : protectedOn ? 'success' : 'neutral'"
+            :label="
+              timers.global
+                ? formatCountdown(timers.global.resumeAt, nowMs)
+                : protectedOn
+                  ? tr('Đang bảo vệ', 'Protected')
+                  : tr('Đang tạm dừng', 'Paused')
+            "
+          />
+          <button
+            type="button"
+            class="icon-button"
+            :title="tr('Cài đặt', 'Settings')"
+            :aria-label="tr('Cài đặt', 'Settings')"
+            @click="go('settings')"
+          >
+            <Settings :size="19" />
+          </button>
+        </div>
+      </header>
+
+      <div class="content">
+        <div class="page-header">
+          <div>
+            <h1>{{ title }}</h1>
+            <p>{{ descriptions[pane] }}</p>
+          </div>
+          <button type="button" class="btn secondary" :disabled="busy || loading" @click="refresh">
+            <RefreshCw :size="15" />
+            <span>{{ tr('Làm mới', 'Refresh') }}</span>
+          </button>
+        </div>
+
+        <div v-if="loading" class="panel">{{ tr('Đang kết nối engine…', 'Connecting to engine…') }}</div>
+        <div v-else-if="!config" class="panel">
+          {{ tr('Không thể tải cấu hình. Hãy nhấn Làm mới.', 'Unable to load configuration. Refresh to retry.') }}
+        </div>
+
+        <template v-else>
+          <OverviewView
+            v-if="pane === 'overview'"
+            v-model:period="period"
+            :config="config"
+            :stats="stats"
+            :stealth="stealth"
+            :timers="timers"
+            :exceptions="exceptions"
+            :custom-sites-count="diagnostics?.customSitesCount || 0"
+            :enabled-set="enabledSet"
+            :list-data="listData"
+            :rule-count="ruleCount"
+            :protected-on="protectedOn"
+            :mode-restricted="modeRestricted"
+            :busy="busy"
+            :now-ms="nowMs"
+            @global-toggle="globalToggle"
+            @timed-pause-global="timedPauseGlobal"
+            @cancel-global-timer="cancelGlobalTimer"
+            @toggle-stats="toggleStats"
+            @apply-preset="applyPreset"
+            @go="go"
+          />
+
+          <FiltersView
+            v-else-if="pane === 'filters'"
+            :list-data="listData"
+            :enabled-set="enabledSet"
+            :rule-count="ruleCount"
+            :max-rulesets="config.maxNumberOfEnabledRulesets || 50"
+            :admin-rulesets="config.adminRulesets || []"
+            :supports-user-scripts="Boolean(config.supportsUserScripts)"
+            :busy="busy"
+            @toggle-list="toggleList"
+            @add-list="addList"
+            @remove-list="removeList"
+            @update-lists="updateLists"
+            @refresh="refresh"
+            @apply-preset="applyPreset"
+          />
+
+          <PrivacyView
+            v-else-if="pane === 'privacy'"
+            :config="config"
+            :stealth="stealth"
+            :list-data="listData"
+            :enabled-set="enabledSet"
+            :admin-rulesets="config.adminRulesets || []"
+            :busy="busy"
+            @toggle-stealth="toggleStealth"
+            @toggle-list="toggleList"
+            @change-setting="changeSetting"
+          />
+
+          <ExceptionsView
+            v-else-if="pane === 'exceptions'"
+            :exceptions="exceptions"
+            :protected-on="protectedOn"
+            :mode-restricted="modeRestricted"
+            :busy="busy"
+            @add-host="addHost"
+            @remove-host="removeHost"
+            @bulk-add="bulkAddExceptions"
+            @clear-all="clearAllExceptions"
+          />
+
+          <RulesView
+            v-else-if="pane === 'rules'"
+            v-model:rules="rules"
+            :rule-original="ruleOriginal"
+            :picked="picked"
+            :user-rules-count="diagnostics?.userRulesCount || 0"
+            :supports-user-scripts="Boolean(config.supportsUserScripts)"
+            :busy="busy"
+            @save-rules="saveRules"
+            @revert-rules="rules = ruleOriginal"
+            @remove-picked="removePicked"
+            @remove-all-picked="removeAllPicked"
+            @notify="notify"
+          />
+
+          <ActivityView
+            v-else-if="pane === 'activity'"
+            :activity="activity"
+            :list-data="listData"
+            @refresh="refresh"
+          />
+
+          <SettingsView
+            v-else-if="pane === 'settings'"
+            :config="config"
+            :stats="stats"
+            :diagnostics="diagnostics"
+            :mode-restricted="modeRestricted"
+            :busy="busy"
+            @level-change="levelChange"
+            @change-setting="changeSetting"
+            @toggle-developer="toggleDeveloper"
+            @toggle-stats="toggleStats"
+            @prefs-change="prefs"
+            @export-settings="exportSettings"
+            @restore-settings="restoreSettings"
+            @clear-stats="clearStats"
+            @reset="reset"
+          />
+
+          <AboutView
+            v-else
+            :pane="pane === 'welcome' ? 'welcome' : 'about'"
+            :config="config"
+            :mode-restricted="modeRestricted"
+            :busy="busy"
+            @level-change="levelChange"
+            @apply-preset="applyPreset"
+            @go="go"
+          />
+        </template>
+      </div>
+    </main>
+
+    <div v-if="toast" class="toast" :class="{ bad }" role="status">
+      <component :is="bad ? AlertCircle : CheckCircle2" :size="18" />
+      <span>{{ toast }}</span>
+      <button type="button" :aria-label="tr('Đóng thông báo', 'Dismiss')" @click="toast = ''">
+        <X :size="16" />
+      </button>
+    </div>
   </div>
- </main>
- <div v-if="toast" class="toast" :class="{bad}" role="status"><component :is="bad?AlertCircle:CheckCircle2" :size="20"/>{{toast}}<button @click="toast=''"><X :size="17"/></button></div>
-</div>
 </template>
