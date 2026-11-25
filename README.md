@@ -85,3 +85,13 @@ node origin/smoke.mjs dist/build/uBOLite.chromium
 
 Independent unofficial fork of [gorhill/uBlock](https://github.com/gorhill/uBlock), not officially affiliated with **uBlock Origin**, **AdGuard**, or **Adblock Plus**.  
 Copyright (c) Raymond Hill and upstream contributors. Licensed under **GPL-3.0** — see [LICENSE.txt](LICENSE.txt), [README.upstream.md](README.upstream.md), and bundled third-party licenses (`licenses/origin-ui/` for Vue, Lucide, Tailwind CSS).
+
+---
+
+## ☕ Buy me a coffee
+
+Nếu dự án này hữu ích với bạn, hãy mời mình một ly cà phê để ủng hộ việc duy trì và phát triển dự án. Cảm ơn bạn!
+
+<p align="center">
+  <a href="https://raw.githubusercontent.com/lowji194/lowji194/main/assets/donate-qr.svg"><img src="https://raw.githubusercontent.com/lowji194/lowji194/main/assets/donate-qr.svg" width="300" alt="Donate — scan the QR code"></a>
+</p>
