@@ -7,3 +7,6 @@ node_modules/
 .DS_Store
 
 /dist/origin/
+
+/origin/ui/node_modules/
+/origin/ui/dist/

@@ -35,11 +35,11 @@ try{
     return r.result.value;
   };
   await wait(1800);
-  const info=await evaluate("({title:document.title,name:chrome.runtime.getManifest().name,version:chrome.runtime.getManifest().version,mv:chrome.runtime.getManifest().manifest_version,loading:document.body.classList.contains('loading'),nav:!!document.querySelector('.origin-nav-brand'),css:getComputedStyle(document.querySelector('#dashboard-nav')).display})");
-  console.log('Dashboard',info);assert.equal(info.mv,3);assert.equal(info.version,'1.1.0');assert.equal(info.loading,false);assert.equal(info.nav,true);
+  const info=await evaluate("({title:document.title,name:chrome.runtime.getManifest().name,version:chrome.runtime.getManifest().version,mv:chrome.runtime.getManifest().manifest_version,loading:!document.querySelector('[data-page=overview]'),nav:!!document.querySelector('.side-nav'),css:getComputedStyle(document.querySelector('.side-nav')).display})");
+  console.log('Dashboard',info);assert.equal(info.mv,3);assert.equal(info.version,'2.0.0');assert.equal(info.loading,false);assert.equal(info.nav,true);
   const command=async(what,extra={})=>evaluate('chrome.runtime.sendMessage('+JSON.stringify({what,...extra})+')');
-  const home=await evaluate("({pane:document.body.dataset.pane,shown:getComputedStyle(document.querySelector('section[data-pane=overview]')).display,enabled:document.querySelector('#originEnabled').textContent,stats:document.querySelector('#originStatsOpt').checked,nav:document.querySelectorAll('#dashboard-nav .tabButton').length})");
-  console.log('New dashboard',home);assert.equal(home.pane,'overview');assert.equal(home.shown,'block');assert.equal(home.enabled,'7');assert.equal(home.stats,false);assert(home.nav>=8);
+  const home=await evaluate("({shown:!!document.querySelector('[data-page=overview]'),nav:document.querySelectorAll('.side-nav button').length,cards:document.querySelectorAll('.stat-card').length,old:!!document.querySelector('#dashboard-nav')})");
+  console.log('Independent Vue dashboard',home);assert(home.shown);assert.equal(home.nav,8);assert.equal(home.cards,3);assert.equal(home.old,false);
   assert.equal(await command('originException',{hostname:'allow-smoke.test'}),true);
   assert((await command('getFilteringModeDetails')).none.includes('allow-smoke.test'));
   assert.equal(await command('originGlobalToggle',{enabled:false}),0);
@@ -57,30 +57,70 @@ try{
   await command('originClearStats');assert.equal(Object.keys((await command('originGetStats')).days).length,0);
   await command('originSetStats',{enabled:false});
   console.log('Opt-in local counts, deduplication and clearing: passed');
-  for(const pane of ['privacy','exceptions','activity','rulesets','filters','settings','overview']){
-    await evaluate("document.querySelector('#dashboard-nav [data-pane="+pane+"]').click()");
-    await wait(100);
-    assert.equal(await evaluate("getComputedStyle(document.querySelector('section[data-pane="+pane+"]')).display"),'block');
+  for(const [i,pane] of ['overview','filters','privacy','exceptions','rules','activity','settings','about'].entries()){
+    await evaluate("document.querySelectorAll('.side-nav button')["+i+"].click()");
+    await wait(150);
+    assert.equal(await evaluate("Boolean(document.querySelector('[data-page="+pane+"]'))"),true);
   }
-  console.log('Sidebar navigation: passed');
+  await evaluate("document.querySelectorAll('.side-nav button')[0].click()");
+  await evaluate("document.querySelector('.page-header button').click()");
+  await wait(500);
+  assert.equal(await evaluate("document.querySelector('.banner-switch').getAttribute('aria-checked')"),'true');
+  await evaluate("document.querySelector('.banner-switch').click()");
+  await wait(500);assert.equal(await command('getDefaultFilteringMode'),0);
+  await evaluate("document.querySelector('.banner-switch').click()");
+  await wait(500);assert.equal(await command('getDefaultFilteringMode'),2);
+  console.log('Eight independent pages and global toggle UI: passed');
   if(process.env.ORIGIN_SCREENSHOTS){
     mkdirSync(process.env.ORIGIN_SCREENSHOTS,{recursive:true});
+    await evaluate("chrome.storage.local.set({'origin.ui.language':'vi'})");await wait(200);
+    await evaluate("document.querySelector('.toast button')?.click()");
     await cdp('Emulation.setDeviceMetricsOverride',{width:1280,height:850,deviceScaleFactor:1,mobile:false},sessionId);
     await wait(100);
     const shot=await cdp('Page.captureScreenshot',{format:'png'},sessionId);
     writeFileSync(join(process.env.ORIGIN_SCREENSHOTS,'dashboard.png'),Buffer.from(shot.data,'base64'));
   }
-  // Toggle an actual privacy filter using its visible control.
-  await evaluate("document.querySelector('#dashboard-nav [data-pane=privacy]').click()");
+  // Real UI actions with engine read-back.
+  await evaluate("document.querySelectorAll('.side-nav button')[2].click()");
   await wait(150);
-  await evaluate("document.querySelector('#originPrivacyLists input').click()");
-  await wait(700);
-  const afterPrivacy=await command('getEnabledRulesets');
-  assert(!afterPrivacy.includes('easyprivacy'));
-  await evaluate("document.querySelector('#originPrivacyLists input').click()");
-  await wait(700);
-  assert((await command('getEnabledRulesets')).includes('easyprivacy'));
+  await evaluate("document.querySelector('button[role=switch][aria-label=EasyPrivacy]').click()");
+  await wait(700);assert(!(await command('getEnabledRulesets')).includes('easyprivacy'));
+  await evaluate("document.querySelector('button[role=switch][aria-label=EasyPrivacy]').click()");
+  await wait(700);assert((await command('getEnabledRulesets')).includes('easyprivacy'));
   console.log('Privacy toggle updates engine: passed');
+  await evaluate("document.querySelectorAll('.side-nav button')[3].click()");
+  await wait(150);
+  await evaluate("(()=>{let e=document.querySelector('[data-page=exceptions] form input');e.value='ui-smoke.test';e.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('[data-page=exceptions] form').requestSubmit();})()");
+  await wait(500);assert((await command('getFilteringModeDetails')).none.includes('ui-smoke.test'));
+  await evaluate("document.querySelector('[data-page=exceptions] .list-row .icon-button').click()");
+  await wait(500);assert(!(await command('getFilteringModeDetails')).none.includes('ui-smoke.test'));
+  console.log('Allowlist UI add/remove: passed');
+  await evaluate("document.querySelectorAll('.side-nav button')[4].click()");
+  await wait(300);
+  await evaluate("(()=>{let e=document.querySelector('textarea.editor');e.value='||origin-custom-smoke.test^';e.dispatchEvent(new Event('input',{bubbles:true}));})()");
+  await wait(100);
+  await evaluate("document.querySelector('[data-page=rules] button.primary').click()");
+  await wait(1000);assert((await command('getSandboxFilters'))?.includes('origin-custom-smoke.test'));
+  await command('setSandboxFilters',{text:'/custom-block^'});
+  console.log('Custom rule editor saves engine rule: passed');
+  await evaluate("document.querySelectorAll('.side-nav button')[6].click()");
+  await wait(150);
+  await evaluate("document.querySelector('.theme-options button[title=dark]').click()");
+  await wait(150);assert.equal(await evaluate("document.documentElement.dataset.theme"),'dark');
+  await evaluate("document.querySelector('.theme-options button[title=light]').click()");
+  console.log('Theme change: passed');
+  const backup=await evaluate("(async()=>{const m=await import(chrome.runtime.getURL('js/backup-restore.js'));return m.backupToObject(await chrome.runtime.sendMessage({what:'getOptionsPageData'}));})()");
+  assert(backup.filteringModes);assert(Array.isArray(backup.filteringModes.none));
+  console.log('Backup engine serialization: passed');
+  if(process.env.ORIGIN_SCREENSHOTS){
+    await evaluate("document.querySelector('.toast button')?.click()");
+    const shot=await cdp('Page.captureScreenshot',{format:'png'},sessionId);
+    writeFileSync(join(process.env.ORIGIN_SCREENSHOTS,'settings.png'),Buffer.from(shot.data,'base64'));
+    await evaluate("document.querySelectorAll('.side-nav button')[1].click()");
+    await wait(200);
+    const filters=await cdp('Page.captureScreenshot',{format:'png'},sessionId);
+    writeFileSync(join(process.env.ORIGIN_SCREENSHOTS,'filters.png'),Buffer.from(filters.data,'base64'));
+  }
   const rules=await evaluate('chrome.declarativeNetRequest.getEnabledRulesets()');
   console.log('Enabled rulesets',rules);assert(rules.includes('vie-1'));assert(rules.includes('easylist'));
   const data=await evaluate("chrome.runtime.sendMessage({what:'popupPanelData',origin:'https://example.com',hostname:'example.com'})");
@@ -94,6 +134,10 @@ try{
   await wait(400);
   const req=async(path)=>evaluate("fetch("+JSON.stringify(path)+").then(r=>r.status).catch(()=>0)",ps);
   assert.equal(await req('/normal'),200);
+  assert.equal(await req('/custom-block'),0);
+  await command('setSandboxFilters',{text:''});
+  assert.equal(await req('/custom-block?after=1'),200);
+  console.log('Custom network rule actually blocks and clears: passed');
   const blocked=await req('/test.ashx?adid=123');
   console.log('EasyList fixture:',blocked,'server hits:',hits);assert.equal(blocked,0);assert(!hits.includes('/test.ashx?adid=123'));
   assert.equal(await evaluate("chrome.runtime.sendMessage({what:'setFilteringMode',hostname:'origin-smoke.test',level:0})"),0);
@@ -111,10 +155,15 @@ try{
     const popup=targets.find(t=>t.url==='chrome-extension://'+id+'/popup.html');
     if(popup){
       const session=(await cdp('Target.attachToTarget',{targetId:popup.targetId,flatten:true})).sessionId;
-      const state=await evaluate("({status:document.querySelector('#originStatus').textContent,active:document.body.dataset.originActive,hostname:document.querySelector('#hostname').textContent,loading:document.body.classList.contains('loading')})",session);
+      const state=await evaluate("({status:document.querySelector('.popup-hero h1').textContent,active:document.querySelector('.power-button').getAttribute('aria-pressed'),hostname:document.querySelector('.host').textContent,loading:document.querySelector('.power-button').disabled})",session);
       console.log('Popup:',state);assert.equal(state.loading,false);assert.equal(state.active,'true');
-      assert.equal(await evaluate("document.querySelectorAll('[data-origin-level]').length",session),3);
-      assert.equal(await evaluate("document.querySelectorAll('.origin-shortcuts button').length",session),4);
+      assert.equal(await evaluate("document.querySelectorAll('.segmented button').length",session),3);
+      assert.equal(await evaluate("document.querySelectorAll('.quick-nav button').length",session),4);
+      await evaluate("document.querySelector('.power-button').click()",session);
+      await wait(600);assert.equal(await command('getFilteringMode',{hostname:'origin-smoke.test'}),0);
+      await evaluate("document.querySelector('.power-button').click()",session);
+      await wait(600);assert.equal(await command('getFilteringMode',{hostname:'origin-smoke.test'}),1);
+      console.log('Actual popup power control: passed');
       if(process.env.ORIGIN_SCREENSHOTS){
         try{
 
